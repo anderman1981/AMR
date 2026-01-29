@@ -3,7 +3,7 @@ import { Card, Upload, Button, Space, Typography, message, Table, Tag, Progress 
 import { InboxOutlined, FolderOpenOutlined, SyncOutlined } from '@ant-design/icons'
 import { useDropzone } from 'react-dropzone'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import * as booksService from './services/books'
+import * as booksService from '../services/books'
 
 const { Title, Text } = Typography
 const { Dragger } = Upload

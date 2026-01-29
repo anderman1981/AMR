@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Base de datos SQLite (liviana para desarrollo local)
+  amrois-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amrois-api-macos
+    ports:
+      - "4123:4123"
+    environment:
+      - NODE_ENV=development
+      - DB_TYPE=sqlite
+      - DB_PATH=/app/data/amrois.db
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - JWT_SECRET=local_jwt_secret_change_in_production
+      - DEVICE_TOKEN_SECRET=local_device_secret_change_in_production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./data:/app/data
+      - ./books:/app/books:ro
+      - ./src:/app/src
+      - ./config:/app/config
+    depends_on:
+      - redis
+    network_mode: bridge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Cache Redis (ligero)
+  redis:
+    image: redis:7-alpine
+    container_name: amrois-redis-macos
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Nginx como reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: amrois-nginx-macos
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-local.conf:/etc/nginx/nginx.conf:ro
+      - ./dashboard/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - amrois-api
+    network_mode: bridge
+
+  # Ollama se ejecutará localmente en macOS (no en Docker)
+  # Para instalar: brew install ollama && ollama serve
+
+volumes:
+  redis_data:
+
+# Nota para macOS:
+# 1. Instalar Ollama localmente: brew install ollama
+# 2. Iniciar Ollama: ollama serve && ollama pull llama3
+# 3. Instalar n8n localmente: npm install n8n -g
+# 4. Iniciar n8n: n8n start --port 5678

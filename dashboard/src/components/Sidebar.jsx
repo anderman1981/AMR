@@ -3,7 +3,7 @@ import { Layout, Menu } from 'antd'
 import { 
   DashboardOutlined, 
   BookOutlined, 
-  ComputerOutlined, 
+  DesktopOutlined, 
   UnorderedListOutlined, 
   SettingOutlined 
 } from '@ant-design/icons'
@@ -28,7 +28,7 @@ function Sidebar() {
     },
     {
       key: '/devices',
-      icon: <ComputerOutlined />,
+      icon: <DesktopOutlined />,
       label: 'Dispositivos'
     },
     {

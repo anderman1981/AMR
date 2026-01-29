@@ -1,0 +1,53 @@
+{
+  "name": "amrois-windows-agent",
+  "version": "1.0.0",
+  "description": "AMROIS Windows Device Agent - Platform-specific agent for Windows systems",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "install-service": "node scripts/install-service.js",
+    "uninstall-service": "node scripts/uninstall-service.js",
+    "build": "pkg src/index.js --out-path dist/ --targets node18-win-x64",
+    "test": "jest"
+  },
+  "keywords": [
+    "amrois",
+    "windows",
+    "agent",
+    "orchestration",
+    "automation"
+  ],
+  "author": "AMROIS Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-windows": "^1.0.0-bet.1",
+    "winreg": "^1.2.4",
+    "node-dpapi": "^1.0.0",
+    "systeminformation": "^5.21.0",
+    "windows-task-scheduler": "^1.0.0",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0",
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "pkg": {
+    "scripts": [
+      "src/**/*.js",
+      "node_modules/**/*.js"
+    ],
+    "assets": [
+      "config/**/*",
+      "scripts/**/*"
+    ]
+  }
+}
