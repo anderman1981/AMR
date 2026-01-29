@@ -1,0 +1,1360 @@
+{
+  "protocol_metadata": {
+    "name": "AI Development Master Protocol (ADMP)",
+    "version": "2.1.0",
+    "last_updated": "2026-01-28",
+    "language_support": {
+      "single_language": ["python", "javascript", "typescript", "java", "go", "rust"],
+      "hybrid_architectures": [
+        "node_react",
+        "python_fastapi_vue",
+        "go_svelte",
+        "java_spring_angular",
+        "rust_react"
+      ],
+      "microservices": "any language per service"
+    },
+    "mandatory_features": [
+      "LLM Integration (Ollama/OpenAI/Claude/Gemini)",
+      "Agent System Architecture",
+      "API-first design",
+      "Multi-provider fallback"
+    ],
+    "compliance_standards": [
+      "ISO/IEC 25010:2011",
+      "IEEE 829-2008",
+      "PMBOK 7th Edition",
+      "SWEBOK v3.0",
+      "UML 2.5.1",
+      "OpenAPI 3.0",
+      "Semantic Versioning 2.0.0"
+    ],
+    "supported_languages": ["python", "javascript", "typescript", "java", "go", "rust"],
+    "required_tools": {
+      "version_control": "git >= 2.30",
+      "ci_cd": "GitHub Actions",
+      "testing": ["pytest", "jest", "junit"],
+      "linting": ["pylint", "eslint", "prettier"],
+      "documentation": ["sphinx", "jsdoc", "swagger"],
+      "llm_providers": ["ollama", "openai", "anthropic", "google"]
+    }
+  },
+
+  "architecture_patterns": {
+    "monolithic_single_language": {
+      "description": "Single language, single deployment unit",
+      "use_cases": ["MVPs", "Small projects", "Proof of concepts"],
+      "examples": {
+        "python_only": {
+          "backend": "FastAPI or Flask",
+          "frontend": "Jinja2 templates or htmx",
+          "database": "PostgreSQL",
+          "cache": "Redis",
+          "llm": "Ollama"
+        },
+        "node_only": {
+          "backend": "Express.js",
+          "frontend": "EJS or Pug templates",
+          "database": "PostgreSQL or MongoDB",
+          "cache": "Redis",
+          "llm": "Ollama"
+        }
+      }
+    },
+
+    "hybrid_fullstack": {
+      "description": "Separate backend and frontend with different languages",
+      "use_cases": ["Modern web apps", "Dashboards", "SaaS products"],
+      "patterns": {
+        "node_react": {
+          "backend": {
+            "language": "Node.js",
+            "framework": "Express.js",
+            "port": 4123,
+            "responsibilities": ["API", "Business Logic", "Agent Orchestration"]
+          },
+          "frontend": {
+            "language": "JavaScript/React",
+            "framework": "Vite or Next.js",
+            "port": 4124,
+            "responsibilities": ["UI/UX", "Real-time updates"]
+          },
+          "communication": "REST API or GraphQL",
+          "deployment": "Separate containers or processes"
+        },
+        "python_react": {
+          "backend": {
+            "language": "Python",
+            "framework": "FastAPI or Django",
+            "port": 8000,
+            "responsibilities": ["API", "AI/ML", "Data Processing"]
+          },
+          "frontend": {
+            "language": "TypeScript/React",
+            "framework": "Vite",
+            "port": 3000,
+            "responsibilities": ["UI/UX", "Dashboard"]
+          }
+        }
+      }
+    },
+
+    "microservices_polyglot": {
+      "description": "Multiple services, each in optimal language",
+      "use_cases": ["Large systems", "Team specialization", "Performance optimization"],
+      "example": {
+        "api_gateway": {
+          "language": "Go or Node.js",
+          "why": "High throughput, low latency"
+        },
+        "ai_agents": {
+          "language": "Python",
+          "why": "Rich AI/ML ecosystem"
+        },
+        "real_time_service": {
+          "language": "Go or Rust",
+          "why": "Concurrency, performance"
+        },
+        "business_logic": {
+          "language": "Java or C#",
+          "why": "Enterprise patterns, type safety"
+        }
+      },
+      "communication": "gRPC or Message Queue (RabbitMQ, Kafka)"
+    },
+
+    "agent_system_architecture": {
+      "description": "AI agent swarm with LLM integration",
+      "mandatory_components": {
+        "llm_manager": {
+          "language": "Any (Node.js or Python recommended)",
+          "responsibilities": [
+            "Manage multiple LLM providers",
+            "Handle fallback strategies",
+            "Rate limiting and retries",
+            "Cost tracking"
+          ]
+        },
+        "agent_orchestrator": {
+          "responsibilities": [
+            "Coordinate agent tasks",
+            "Manage agent lifecycle",
+            "Handle inter-agent communication",
+            "Track agent performance"
+          ]
+        },
+        "knowledge_base": {
+          "technologies": ["PostgreSQL", "Redis", "Vector DB (ChromaDB, Pinecone)"],
+          "responsibilities": [
+            "Store agent knowledge",
+            "RAG (Retrieval Augmented Generation)",
+            "Learning history"
+          ]
+        }
+      },
+      "example_architecture": {
+        "backend_api": {
+          "language": "Node.js",
+          "port": 4123,
+          "framework": "Express.js"
+        },
+        "agent_layer": {
+          "language": "Python or Node.js",
+          "agents": ["Detector", "Content", "Analytics", "Learning"]
+        },
+        "llm_service": {
+          "provider": "Ollama",
+          "port": 11434,
+          "models": ["llama3:latest", "codellama:latest"]
+        },
+        "frontend": {
+          "language": "React",
+          "port": 4124
+        },
+        "database": {
+          "type": "PostgreSQL",
+          "port": 5432
+        },
+        "cache": {
+          "type": "Redis",
+          "port": 6379
+        }
+      }
+    }
+  },
+
+  "llm_integration_requirements": {
+    "mandatory": true,
+    "description": "Every AI-assisted project must have LLM integration as first-class feature",
+    
+    "provider_abstraction": {
+      "required": true,
+      "pattern": "Provider pattern with fallback strategy",
+      "supported_providers": {
+        "ollama": {
+          "type": "local",
+          "priority": 1,
+          "benefits": ["Privacy", "No API costs", "Low latency"],
+          "models": ["llama3", "codellama", "mistral", "phi"]
+        },
+        "openai": {
+          "type": "cloud",
+          "priority": 2,
+          "benefits": ["High quality", "Large context", "Function calling"],
+          "models": ["gpt-4-turbo", "gpt-3.5-turbo"]
+        },
+        "anthropic": {
+          "type": "cloud",
+          "priority": 3,
+          "benefits": ["Long context", "Code generation", "Analysis"],
+          "models": ["claude-3-opus", "claude-3-sonnet"]
+        },
+        "google": {
+          "type": "cloud",
+          "priority": 4,
+          "benefits": ["Multimodal", "Fast", "Cost-effective"],
+          "models": ["gemini-pro", "gemini-pro-vision"]
+        }
+      }
+    },
+
+    "api_endpoints_required": {
+      "llm_operations": [
+        "POST /api/llm/generate - Generate text",
+        "POST /api/llm/chat - Chat with LLM",
+        "POST /api/llm/embed - Generate embeddings",
+        "GET /api/llm/providers - List available providers",
+        "GET /api/llm/health - Check provider health"
+      ],
+      "agent_operations": [
+        "POST /api/agents/:name/execute - Execute agent task",
+        "GET /api/agents/:name/status - Get agent status",
+        "POST /api/agents/:name/train - Train agent with feedback",
+        "GET /api/agents - List all agents"
+      ]
+    },
+
+    "code_templates": {
+      "nodejs_llm_manager": "src/llm/LLMManager.js",
+      "python_llm_manager": "src/llm/LLMManager.py",
+      "agent_base_class": "src/agents/BaseAgent.{js|py}",
+      "provider_config": "config/llm-providers.yml"
+    }
+  },
+
+  "agent_personas": {
+    "project_manager": {
+      "name": "PM-Agent",
+      "role": "Project Planning & Coordination",
+      "personality": "Strategic, organized, deadline-oriented",
+      "primary_responsibilities": [
+        "Create and maintain project charter",
+        "Define SMART objectives",
+        "Manage stakeholder relationships",
+        "Track project timeline and milestones",
+        "Coordinate between agents",
+        "Manage risks and issues"
+      ],
+      "tools": ["GitHub Projects", "Gantt charts", "Risk register"],
+      "output_artifacts": [
+        "docs/PROJECT_CHARTER.md",
+        "docs/ROADMAP.md",
+        "docs/STAKEHOLDERS.md",
+        "docs/RISKS.md"
+      ],
+      "decision_authority": "high",
+      "communication_style": "Clear, concise, actionable",
+      "success_metrics": [
+        "project_on_time",
+        "all_stakeholders_informed",
+        "risks_identified_early"
+      ]
+    },
+
+    "architect": {
+      "name": "Arch-Agent",
+      "role": "System Design & Technical Leadership",
+      "personality": "Analytical, detail-oriented, long-term thinker",
+      "primary_responsibilities": [
+        "Design system architecture",
+        "Create UML diagrams (all types)",
+        "Write Architecture Decision Records",
+        "Define technical standards",
+        "Review technical feasibility",
+        "Ensure scalability and maintainability"
+      ],
+      "tools": ["PlantUML", "draw.io", "Mermaid"],
+      "output_artifacts": [
+        "docs/ARCHITECTURE.md",
+        "docs/diagrams/use-cases.puml",
+        "docs/diagrams/class-diagram.puml",
+        "docs/diagrams/sequence/*.puml",
+        "docs/diagrams/component.puml",
+        "docs/diagrams/deployment.puml",
+        "docs/adr/ADR-*.md",
+        "docs/database-schema.md",
+        "docs/api/openapi.yml"
+      ],
+      "decision_authority": "critical",
+      "communication_style": "Technical, precise, well-documented",
+      "success_metrics": [
+        "architecture_approved",
+        "all_diagrams_created",
+        "adrs_documented",
+        "no_major_refactors_needed"
+      ],
+      "mandatory_diagrams": {
+        "use_case": {
+          "required": true,
+          "description": "Shows system functionality from user perspective",
+          "min_actors": 2,
+          "min_use_cases": 5
+        },
+        "class": {
+          "required": true,
+          "description": "Shows system structure and relationships",
+          "min_classes": 5,
+          "must_show": ["relationships", "attributes", "methods"]
+        },
+        "sequence": {
+          "required": true,
+          "description": "Shows interaction flow over time",
+          "min_diagrams": 3,
+          "must_cover": ["main_flows", "error_handling"]
+        },
+        "component": {
+          "required": true,
+          "description": "Shows system components and dependencies",
+          "must_show": ["interfaces", "dependencies"]
+        },
+        "deployment": {
+          "required": true,
+          "description": "Shows physical deployment architecture",
+          "must_show": ["servers", "networks", "protocols"]
+        }
+      }
+    },
+
+    "code_generator": {
+      "name": "CodeGen-Agent",
+      "role": "Feature Implementation",
+      "personality": "Pragmatic, quality-focused, efficient",
+      "primary_responsibilities": [
+        "Implement features according to specs",
+        "Follow SOLID principles strictly",
+        "Write clean, maintainable code",
+        "Implement comprehensive error handling",
+        "Add logging and monitoring",
+        "Optimize for performance when needed"
+      ],
+      "tools": ["IDE", "linter", "formatter", "debugger"],
+      "output_artifacts": [
+        "src/**/*.{py,js,ts,java,go}",
+        "Code commits with conventional format"
+      ],
+      "decision_authority": "medium",
+      "communication_style": "Technical, code-focused",
+      "mandatory_practices": {
+        "solid_principles": {
+          "single_responsibility": {
+            "description": "Each class/function does ONE thing",
+            "validation": "max_lines_per_function <= 50",
+            "example": "User authentication should not handle email sending"
+          },
+          "open_closed": {
+            "description": "Open for extension, closed for modification",
+            "validation": "uses_inheritance_or_composition",
+            "example": "Payment processors use strategy pattern"
+          },
+          "liskov_substitution": {
+            "description": "Subtypes must be substitutable for their base types",
+            "validation": "subclass_maintains_contract",
+            "example": "All Bird subclasses must implement move() appropriately"
+          },
+          "interface_segregation": {
+            "description": "No client should depend on methods it doesn't use",
+            "validation": "interfaces_are_cohesive",
+            "example": "Separate Workable, Eatable, Sleepable interfaces"
+          },
+          "dependency_inversion": {
+            "description": "Depend on abstractions, not concretions",
+            "validation": "uses_dependency_injection",
+            "example": "UserService depends on Database interface, not MySQLDatabase"
+          }
+        },
+        "clean_code": {
+          "naming": {
+            "variables": "descriptive, no abbreviations",
+            "functions": "verb_noun format, describes action",
+            "classes": "noun, describes entity",
+            "constants": "UPPER_SNAKE_CASE, descriptive"
+          },
+          "functions": {
+            "max_lines": 50,
+            "max_parameters": 5,
+            "single_purpose": true,
+            "side_effects": "minimize"
+          },
+          "comments": {
+            "when": "explain WHY, not WHAT",
+            "avoid": "obvious statements",
+            "required": "complex algorithms, business rules"
+          }
+        },
+        "error_handling": {
+          "always_validate_input": true,
+          "use_specific_exceptions": true,
+          "log_errors": true,
+          "never_silent_fail": true,
+          "provide_context": true
+        }
+      },
+      "code_quality_gates": {
+        "linter_score": ">= 9.0/10.0",
+        "max_complexity": 10,
+        "max_function_length": 50,
+        "no_code_smells": true,
+        "type_coverage": ">= 90%"
+      }
+    },
+
+    "test_engineer": {
+      "name": "QA-Agent",
+      "role": "Quality Assurance & Testing",
+      "personality": "Meticulous, skeptical, thorough",
+      "primary_responsibilities": [
+        "Write comprehensive test suites",
+        "Achieve >80% code coverage",
+        "Create test plans",
+        "Execute manual testing when needed",
+        "Report bugs clearly",
+        "Verify fixes"
+      ],
+      "tools": ["pytest", "jest", "selenium", "postman"],
+      "output_artifacts": [
+        "tests/unit/**/*",
+        "tests/integration/**/*",
+        "tests/e2e/**/*",
+        "docs/TEST_PLAN.md",
+        "coverage reports"
+      ],
+      "decision_authority": "high",
+      "communication_style": "Precise, evidence-based",
+      "testing_strategy": {
+        "pyramid": {
+          "unit_tests": {
+            "percentage": 70,
+            "coverage_target": 90,
+            "focus": "individual functions/methods",
+            "speed": "< 100ms per test"
+          },
+          "integration_tests": {
+            "percentage": 20,
+            "coverage_target": 85,
+            "focus": "component interactions",
+            "speed": "< 1s per test"
+          },
+          "e2e_tests": {
+            "percentage": 10,
+            "coverage_target": 80,
+            "focus": "critical user journeys",
+            "speed": "< 10s per test"
+          }
+        },
+        "test_structure": {
+          "pattern": "AAA (Arrange-Act-Assert)",
+          "naming": "test_<method>_<scenario>_<expected>",
+          "isolation": "each test independent",
+          "repeatability": "deterministic results"
+        },
+        "coverage_targets": {
+          "overall": 80,
+          "core_business_logic": 90,
+          "api_endpoints": 85,
+          "utilities": 80,
+          "ui_components": 75
+        },
+        "test_types": {
+          "functional": {
+            "description": "Tests feature behavior",
+            "required": true
+          },
+          "non_functional": {
+            "performance": "Response time, throughput",
+            "security": "Authentication, authorization, input validation",
+            "usability": "User experience, accessibility",
+            "reliability": "Error handling, recovery"
+          },
+          "regression": {
+            "description": "Ensures fixes don't break existing features",
+            "frequency": "on every PR"
+          }
+        }
+      }
+    },
+
+    "documentation_writer": {
+      "name": "Doc-Agent",
+      "role": "Documentation & Knowledge Management",
+      "personality": "Clear, helpful, detail-oriented",
+      "primary_responsibilities": [
+        "Write comprehensive README",
+        "Create API documentation",
+        "Write user guides",
+        "Maintain changelog",
+        "Document architectural decisions",
+        "Create code examples"
+      ],
+      "tools": ["Markdown", "Swagger", "JSDoc", "Sphinx"],
+      "output_artifacts": [
+        "README.md",
+        "CONTRIBUTING.md",
+        "docs/api/**/*",
+        "docs/guides/**/*",
+        "CHANGELOG.md",
+        "inline code comments"
+      ],
+      "decision_authority": "medium",
+      "communication_style": "Clear, beginner-friendly, example-rich",
+      "documentation_standards": {
+        "readme": {
+          "required_sections": [
+            "Project title and badges",
+            "Description (what, why, how)",
+            "Table of contents",
+            "Installation",
+            "Usage with examples",
+            "API reference or link",
+            "Contributing guidelines",
+            "License",
+            "Support/Contact"
+          ],
+          "quality_criteria": {
+            "has_code_examples": true,
+            "has_screenshots": "for UI projects",
+            "beginner_friendly": true,
+            "up_to_date": true
+          }
+        },
+        "api_documentation": {
+          "format": "OpenAPI 3.0",
+          "required_for_each_endpoint": [
+            "Description",
+            "Parameters with types",
+            "Request body schema",
+            "Response schemas (all codes)",
+            "Authentication requirements",
+            "Example requests/responses",
+            "Error codes and meanings"
+          ]
+        },
+        "code_comments": {
+          "when_to_comment": [
+            "Complex algorithms",
+            "Business rules",
+            "Non-obvious decisions",
+            "Public APIs"
+          ],
+          "when_not_to_comment": [
+            "Self-explanatory code",
+            "Generated code",
+            "Obvious operations"
+          ],
+          "format": {
+            "python": "Google-style or NumPy-style docstrings",
+            "javascript": "JSDoc format",
+            "java": "JavaDoc format"
+          }
+        },
+        "changelog": {
+          "format": "Keep a Changelog",
+          "versioning": "Semantic Versioning",
+          "categories": [
+            "Added",
+            "Changed",
+            "Deprecated",
+            "Removed",
+            "Fixed",
+            "Security"
+          ]
+        }
+      }
+    },
+
+    "devops_engineer": {
+      "name": "DevOps-Agent",
+      "role": "CI/CD & Infrastructure",
+      "personality": "Reliable, automation-focused, monitoring-obsessed",
+      "primary_responsibilities": [
+        "Configure CI/CD pipelines",
+        "Set up environments",
+        "Manage deployments",
+        "Configure monitoring",
+        "Ensure high availability",
+        "Document deployment procedures"
+      ],
+      "tools": ["GitHub Actions", "Docker", "Kubernetes", "Terraform"],
+      "output_artifacts": [
+        ".github/workflows/*.yml",
+        "Dockerfile",
+        "docker-compose.yml",
+        "scripts/deploy/*.sh",
+        "docs/DEPLOYMENT.md"
+      ],
+      "decision_authority": "critical",
+      "communication_style": "Technical, operations-focused",
+      "pipeline_requirements": {
+        "ci_pipeline": {
+          "triggers": ["pull_request", "push to dev/main"],
+          "stages": {
+            "lint": {
+              "description": "Code style and quality checks",
+              "fail_on_error": true,
+              "tools": ["eslint", "pylint", "prettier"]
+            },
+            "test": {
+              "description": "Run all test suites",
+              "fail_on_error": true,
+              "coverage_threshold": 80,
+              "parallel": true
+            },
+            "build": {
+              "description": "Compile/bundle application",
+              "fail_on_error": true,
+              "artifacts": "preserve for 30 days"
+            },
+            "security_scan": {
+              "description": "Dependency and code security checks",
+              "fail_on_error": true,
+              "tools": ["npm audit", "snyk", "codeql"]
+            }
+          }
+        },
+        "cd_pipeline": {
+          "triggers": ["manual approval", "tag creation"],
+          "environments": {
+            "staging": {
+              "auto_deploy": "on merge to dev",
+              "smoke_tests": true,
+              "rollback_automatic": true
+            },
+            "production": {
+              "auto_deploy": false,
+              "approval_required": true,
+              "approvers_count": 2,
+              "smoke_tests": true,
+              "rollback_automatic": true,
+              "monitoring": "24/7"
+            }
+          }
+        }
+      },
+      "monitoring_requirements": {
+        "metrics": [
+          "response_time",
+          "error_rate",
+          "throughput",
+          "cpu_usage",
+          "memory_usage",
+          "disk_usage"
+        ],
+        "alerts": {
+          "critical": "page on-call immediately",
+          "high": "notify within 15 minutes",
+          "medium": "notify within 1 hour",
+          "low": "daily summary"
+        },
+        "logging": {
+          "level": "info in production",
+          "structured": true,
+          "centralized": true,
+          "retention": "90 days"
+        }
+      }
+    },
+
+    "security_auditor": {
+      "name": "Sec-Agent",
+      "role": "Security & Compliance",
+      "personality": "Suspicious, thorough, uncompromising",
+      "primary_responsibilities": [
+        "Review code for vulnerabilities",
+        "Ensure secure coding practices",
+        "Manage secrets properly",
+        "Conduct threat modeling",
+        "Ensure compliance with standards",
+        "Review dependencies for CVEs"
+      ],
+      "tools": ["OWASP ZAP", "Snyk", "CodeQL", "npm audit"],
+      "output_artifacts": [
+        "docs/SECURITY.md",
+        "docs/THREAT_MODEL.md",
+        "security scan reports"
+      ],
+      "decision_authority": "veto power",
+      "communication_style": "Direct, security-focused, no compromises",
+      "security_checks": {
+        "owasp_top_10": {
+          "A01_broken_access_control": {
+            "checks": [
+              "Authentication implemented",
+              "Authorization enforced",
+              "CSRF protection",
+              "Session management secure"
+            ]
+          },
+          "A02_cryptographic_failures": {
+            "checks": [
+              "Data encrypted at rest",
+              "Data encrypted in transit (HTTPS)",
+              "Strong encryption algorithms",
+              "No hardcoded secrets"
+            ]
+          },
+          "A03_injection": {
+            "checks": [
+              "Input validation",
+              "Parameterized queries",
+              "Output encoding",
+              "No eval() or exec()"
+            ]
+          },
+          "A04_insecure_design": {
+            "checks": [
+              "Threat modeling performed",
+              "Security patterns used",
+              "Defense in depth",
+              "Least privilege principle"
+            ]
+          },
+          "A05_security_misconfiguration": {
+            "checks": [
+              "Secure defaults",
+              "Error messages don't leak info",
+              "Unnecessary features disabled",
+              "Security headers configured"
+            ]
+          },
+          "A06_vulnerable_components": {
+            "checks": [
+              "Dependencies up to date",
+              "No known CVEs",
+              "Dependency scanning automated",
+              "Remove unused dependencies"
+            ]
+          },
+          "A07_identification_authentication_failures": {
+            "checks": [
+              "MFA available",
+              "Password policy enforced",
+              "Account lockout after failures",
+              "Session timeout configured"
+            ]
+          },
+          "A08_software_data_integrity_failures": {
+            "checks": [
+              "Code signing",
+              "Integrity checks",
+              "Secure deserialization",
+              "CI/CD pipeline secured"
+            ]
+          },
+          "A09_security_logging_monitoring_failures": {
+            "checks": [
+              "All auth events logged",
+              "Failures logged",
+              "Logs protected",
+              "Monitoring configured"
+            ]
+          },
+          "A10_server_side_request_forgery": {
+            "checks": [
+              "URL validation",
+              "Whitelist allowed resources",
+              "Network segmentation",
+              "Disable HTTP redirections"
+            ]
+          }
+        },
+        "secrets_management": {
+          "never_commit": [
+            "API keys",
+            "Passwords",
+            "Private keys",
+            "Database credentials",
+            "JWT secrets"
+          ],
+          "use_instead": [
+            "Environment variables",
+            "Secret managers (AWS Secrets Manager, HashiCorp Vault)",
+            "CI/CD secret storage"
+          ],
+          "detection": "automated scanning with git-secrets or similar"
+        }
+      }
+    }
+  },
+
+  "workflows": {
+    "feature_development": {
+      "description": "Complete workflow for developing a new feature",
+      "stages": [
+        {
+          "stage": "1_requirements",
+          "agent": "project_manager",
+          "inputs": ["user_story", "acceptance_criteria"],
+          "tasks": [
+            "Create GitHub issue",
+            "Define SMART objectives",
+            "Identify stakeholders",
+            "Set timeline",
+            "Add to project board"
+          ],
+          "outputs": ["github_issue", "requirements_doc"],
+          "exit_criteria": {
+            "issue_created": true,
+            "acceptance_criteria_clear": true,
+            "timeline_defined": true
+          }
+        },
+        {
+          "stage": "2_design",
+          "agent": "architect",
+          "inputs": ["requirements_doc"],
+          "tasks": [
+            "Review requirements",
+            "Design solution architecture",
+            "Create UML diagrams",
+            "Write ADR if needed",
+            "Define API contracts",
+            "Review with team"
+          ],
+          "outputs": ["architecture_doc", "uml_diagrams", "adr", "api_spec"],
+          "exit_criteria": {
+            "architecture_approved": true,
+            "diagrams_complete": true,
+            "api_spec_valid": true
+          }
+        },
+        {
+          "stage": "3_implementation",
+          "agent": "code_generator",
+          "inputs": ["architecture_doc", "api_spec"],
+          "tasks": [
+            "Create feature branch",
+            "Implement according to design",
+            "Follow SOLID principles",
+            "Add error handling",
+            "Add logging",
+            "Self-review code"
+          ],
+          "outputs": ["source_code", "git_commits"],
+          "parallel_with": "4_testing",
+          "exit_criteria": {
+            "code_compiles": true,
+            "linter_passes": true,
+            "self_review_complete": true
+          }
+        },
+        {
+          "stage": "4_testing",
+          "agent": "test_engineer",
+          "inputs": ["source_code", "requirements_doc"],
+          "tasks": [
+            "Write unit tests",
+            "Write integration tests",
+            "Write E2E tests if needed",
+            "Run all tests",
+            "Verify coverage >80%"
+          ],
+          "outputs": ["test_files", "coverage_report"],
+          "parallel_with": "3_implementation",
+          "exit_criteria": {
+            "all_tests_pass": true,
+            "coverage_above_threshold": true
+          }
+        },
+        {
+          "stage": "5_documentation",
+          "agent": "documentation_writer",
+          "inputs": ["source_code", "api_spec", "requirements_doc"],
+          "tasks": [
+            "Update API documentation",
+            "Add code comments",
+            "Update README if needed",
+            "Create usage examples",
+            "Update CHANGELOG"
+          ],
+          "outputs": ["api_docs", "code_comments", "changelog_entry"],
+          "exit_criteria": {
+            "api_docs_updated": true,
+            "examples_provided": true,
+            "changelog_updated": true
+          }
+        },
+        {
+          "stage": "6_security_review",
+          "agent": "security_auditor",
+          "inputs": ["source_code", "dependencies"],
+          "tasks": [
+            "Review for OWASP Top 10",
+            "Check for hardcoded secrets",
+            "Scan dependencies for CVEs",
+            "Review authentication/authorization",
+            "Approve or request changes"
+          ],
+          "outputs": ["security_report"],
+          "exit_criteria": {
+            "no_critical_issues": true,
+            "dependencies_secure": true,
+            "secrets_properly_managed": true
+          }
+        },
+        {
+          "stage": "7_code_review",
+          "agent": "multiple",
+          "inputs": ["pull_request"],
+          "tasks": [
+            "Create pull request",
+            "Request reviews from 2+ team members",
+            "Address review comments",
+            "Ensure CI passes"
+          ],
+          "outputs": ["approved_pr"],
+          "exit_criteria": {
+            "approvals_count": 2,
+            "ci_passed": true,
+            "no_unresolved_comments": true
+          }
+        },
+        {
+          "stage": "8_deployment",
+          "agent": "devops_engineer",
+          "inputs": ["approved_pr"],
+          "tasks": [
+            "Merge to dev branch",
+            "Auto-deploy to staging",
+            "Run smoke tests",
+            "If approved, deploy to production",
+            "Monitor metrics"
+          ],
+          "outputs": ["deployed_feature"],
+          "exit_criteria": {
+            "staging_deploy_successful": true,
+            "smoke_tests_passed": true,
+            "production_deploy_successful": true,
+            "no_alerts_triggered": true
+          }
+        },
+        {
+          "stage": "9_monitoring",
+          "agent": "devops_engineer",
+          "inputs": ["deployed_feature"],
+          "tasks": [
+            "Monitor for 24 hours",
+            "Check error rates",
+            "Check performance metrics",
+            "Respond to any issues"
+          ],
+          "outputs": ["monitoring_report"],
+          "exit_criteria": {
+            "error_rate_normal": true,
+            "performance_acceptable": true,
+            "no_user_complaints": true
+          }
+        }
+      ]
+    },
+
+    "bug_fix": {
+      "description": "Workflow for fixing a reported bug",
+      "stages": [
+        {
+          "stage": "1_triage",
+          "agent": "project_manager",
+          "tasks": ["Reproduce bug", "Assess severity", "Assign priority"],
+          "outputs": ["triaged_issue"]
+        },
+        {
+          "stage": "2_fix",
+          "agent": "code_generator",
+          "tasks": ["Identify root cause", "Implement fix", "Add regression test"],
+          "outputs": ["bug_fix_code", "regression_test"]
+        },
+        {
+          "stage": "3_verify",
+          "agent": "test_engineer",
+          "tasks": ["Verify fix", "Run regression suite"],
+          "outputs": ["verification_report"]
+        },
+        {
+          "stage": "4_deploy",
+          "agent": "devops_engineer",
+          "tasks": ["Deploy fix", "Monitor"],
+          "outputs": ["deployed_fix"]
+        }
+      ]
+    },
+
+    "hotfix": {
+      "description": "Emergency fix for production issue",
+      "priority": "critical",
+      "max_duration": "4 hours",
+      "stages": [
+        {
+          "stage": "1_assess",
+          "agent": "project_manager",
+          "duration": "15 minutes",
+          "tasks": ["Assess impact", "Notify stakeholders", "Create hotfix branch from main"]
+        },
+        {
+          "stage": "2_fix",
+          "agent": "code_generator",
+          "duration": "2 hours",
+          "tasks": ["Identify cause", "Implement minimal fix", "Test locally"]
+        },
+        {
+          "stage": "3_fast_track_review",
+          "agent": "multiple",
+          "duration": "30 minutes",
+          "tasks": ["Quick code review", "Security check", "Approve"]
+        },
+        {
+          "stage": "4_deploy",
+          "agent": "devops_engineer",
+          "duration": "1 hour",
+          "tasks": ["Deploy to production", "Monitor closely", "Communicate resolution"]
+        },
+        {
+          "stage": "5_postmortem",
+          "agent": "project_manager",
+          "duration": "48 hours",
+          "tasks": ["Write blameless postmortem", "Identify improvements", "Create follow-up tickets"]
+        }
+      ]
+    }
+  },
+
+  "validation_rules": {
+    "pre_commit": {
+      "description": "Checks before allowing a commit",
+      "checks": [
+        {
+          "name": "linter_passes",
+          "command": "npm run lint",
+          "fail_on_error": true
+        },
+        {
+          "name": "formatter_applied",
+          "command": "npm run format:check",
+          "fail_on_error": true
+        },
+        {
+          "name": "tests_pass",
+          "command": "npm test",
+          "fail_on_error": true
+        },
+        {
+          "name": "no_secrets",
+          "command": "git-secrets --scan",
+          "fail_on_error": true
+        }
+      ]
+    },
+
+    "pre_push": {
+      "description": "Checks before allowing a push",
+      "checks": [
+        {
+          "name": "all_tests_pass",
+          "command": "npm run test:all",
+          "fail_on_error": true
+        },
+        {
+          "name": "coverage_sufficient",
+          "command": "npm run coverage:check",
+          "threshold": 80,
+          "fail_on_error": true
+        }
+      ]
+    },
+
+    "pull_request": {
+      "description": "Checks before merging PR",
+      "checks": [
+        {
+          "name": "ci_passed",
+          "required": true
+        },
+        {
+          "name": "approvals",
+          "minimum": 2,
+          "required": true
+        },
+        {
+          "name": "no_merge_conflicts",
+          "required": true
+        },
+        {
+          "name": "branch_up_to_date",
+          "required": true
+        },
+        {
+          "name": "documentation_updated",
+          "required": true
+        },
+        {
+          "name": "changelog_updated",
+          "required": true
+        }
+      ]
+    }
+  },
+
+  "quality_metrics": {
+    "code_quality": {
+      "linter_score": {
+        "minimum": 9.0,
+        "target": 10.0,
+        "measurement": "out of 10"
+      },
+      "complexity": {
+        "maximum": 10,
+        "measurement": "cyclomatic complexity"
+      },
+      "duplication": {
+        "maximum": 3,
+        "measurement": "percentage"
+      },
+      "maintainability_index": {
+        "minimum": 65,
+        "target": 85,
+        "measurement": "0-100 scale"
+      }
+    },
+
+    "test_quality": {
+      "coverage": {
+        "overall": {"minimum": 80, "target": 85},
+        "branches": {"minimum": 75, "target": 80},
+        "functions": {"minimum": 85, "target": 90},
+        "lines": {"minimum": 80, "target": 85}
+      },
+      "test_success_rate": {
+        "minimum": 98,
+        "target": 100,
+        "measurement": "percentage"
+      },
+      "flakiness": {
+        "maximum": 2,
+        "measurement": "percentage of flaky tests"
+      }
+    },
+
+    "performance": {
+      "response_time": {
+        "p50": {"maximum": 200, "unit": "ms"},
+        "p95": {"maximum": 500, "unit": "ms"},
+        "p99": {"maximum": 1000, "unit": "ms"}
+      },
+      "throughput": {
+        "minimum": 1000,
+        "unit": "requests per second"
+      },
+      "error_rate": {
+        "maximum": 1,
+        "unit": "percentage"
+      }
+    },
+
+    "deployment": {
+      "deployment_frequency": {
+        "target": "daily",
+        "measurement": "deployments per day"
+      },
+      "lead_time": {
+        "target": 24,
+        "measurement": "hours from commit to production"
+      },
+      "mttr": {
+        "target": 30,
+        "measurement": "minutes to recover from incident"
+      },
+      "change_failure_rate": {
+        "maximum": 15,
+        "measurement": "percentage"
+      }
+    }
+  },
+
+  "emergency_protocols": {
+    "incident_severity": {
+      "P0_critical": {
+        "description": "System down, data loss, security breach",
+        "response_time": "15 minutes",
+        "notification": ["all_hands", "ceo", "customers"],
+        "communication_frequency": "every 30 minutes"
+      },
+      "P1_high": {
+        "description": "Major feature broken, significant user impact",
+        "response_time": "1 hour",
+        "notification": ["on_call", "manager", "product_owner"],
+        "communication_frequency": "every 2 hours"
+      },
+      "P2_medium": {
+        "description": "Minor feature broken, limited user impact",
+        "response_time": "4 hours",
+        "notification": ["on_call"],
+        "communication_frequency": "daily"
+      },
+      "P3_low": {
+        "description": "Cosmetic issue, no user impact",
+        "response_time": "next sprint",
+        "notification": ["create_ticket"]
+      }
+    },
+
+    "rollback_triggers": {
+      "automatic": [
+        "error_rate > 5%",
+        "response_time > 2000ms",
+        "availability < 95%"
+      ],
+      "manual": [
+        "data_corruption_detected",
+        "security_vulnerability_found",
+        "critical_bug_reported"
+      ]
+    }
+  },
+
+  "training_scenarios": {
+    "scenario_1_simple_feature": {
+      "description": "Build a simple REST API endpoint",
+      "difficulty": "beginner",
+      "expected_duration": "2 hours",
+      "agents_involved": ["architect", "code_generator", "test_engineer", "documentation_writer"],
+      "evaluation_criteria": {
+        "architecture_correct": true,
+        "code_follows_standards": true,
+        "tests_pass": true,
+        "coverage": ">= 80%",
+        "documentation_complete": true
+      }
+    },
+
+    "scenario_2_complex_feature": {
+      "description": "Build a microservice with authentication",
+      "difficulty": "intermediate",
+      "expected_duration": "8 hours",
+      "agents_involved": ["all"],
+      "evaluation_criteria": {
+        "all_diagrams_present": true,
+        "adrs_documented": true,
+        "solid_principles_followed": true,
+        "security_approved": true,
+        "ci_cd_configured": true,
+        "monitoring_setup": true
+      }
+    },
+
+    "scenario_3_bug_fix": {
+      "description": "Fix a critical production bug",
+      "difficulty": "intermediate",
+      "expected_duration": "4 hours",
+      "agents_involved": ["project_manager", "code_generator", "test_engineer", "devops_engineer"],
+      "evaluation_criteria": {
+        "bug_reproduced": true,
+        "root_cause_identified": true,
+        "fix_implemented": true,
+        "regression_test_added": true,
+        "deployed_successfully": true
+      }
+    },
+
+    "scenario_4_refactoring": {
+      "description": "Refactor legacy code to follow SOLID",
+      "difficulty": "advanced",
+      "expected_duration": "16 hours",
+      "agents_involved": ["architect", "code_generator", "test_engineer"],
+      "evaluation_criteria": {
+        "solid_violations_identified": true,
+        "refactoring_plan_documented": true,
+        "code_improved": true,
+        "tests_still_pass": true,
+        "no_functionality_lost": true
+      }
+    }
+  },
+
+  "continuous_improvement": {
+    "retrospectives": {
+      "frequency": "end of each sprint",
+      "participants": "all agents + stakeholders",
+      "format": {
+        "what_went_well": "list successes",
+        "what_could_improve": "identify pain points",
+        "action_items": "concrete steps with owners and deadlines"
+      }
+    },
+
+    "protocol_updates": {
+      "frequency": "quarterly",
+      "process": [
+        "Collect feedback from all agents",
+        "Identify improvement areas",
+        "Draft proposed changes",
+        "Team review and vote",
+        "Implement approved changes",
+        "Train team on updates",
+        "Update version number"
+      ]
+    },
+
+    "learning_resources": {
+      "books": [
+        "Clean Code by Robert Martin",
+        "Design Patterns by Gang of Four",
+        "The Pragmatic Programmer",
+        "Software Architecture in Practice",
+        "Site Reliability Engineering (Google)"
+      ],
+      "online_courses": [
+        "SOLID Principles",
+        "Test-Driven Development",
+        "CI/CD Best Practices",
+        "Security Engineering"
+      ]
+    }
+  },
+
+  "appendix": {
+    "glossary": {
+      "ADR": "Architecture Decision Record - documents important architectural decisions",
+      "SOLID": "Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion",
+      "CI/CD": "Continuous Integration / Continuous Deployment",
+      "MTTR": "Mean Time To Recover",
+      "SLA": "Service Level Agreement",
+      "OWASP": "Open Web Application Security Project",
+      "TDD": "Test-Driven Development",
+      "DRY": "Don't Repeat Yourself",
+      "KISS": "Keep It Simple, Stupid",
+      "YAGNI": "You Aren't Gonna Need It"
+    },
+
+    "references": {
+      "standards": [
+        "ISO/IEC 25010: Systems and software Quality Requirements and Evaluation",
+        "IEEE 829: Software Test Documentation",
+        "PMBOK: Project Management Body of Knowledge"
+      ],
+      "websites": [
+        "https://www.conventionalcommits.org/",
+        "https://keepachangelog.com/",
+        "https://semver.org/",
+        "https://owasp.org/",
+        "https://12factor.net/"
+      ]
+    }
+  }
+}
