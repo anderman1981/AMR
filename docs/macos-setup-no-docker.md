@@ -87,7 +87,7 @@ createdb -O amrois amrois_local
 
 | Servicio | URL | Descripción |
 |----------|-----|-------------|
-| Dashboard | http://localhost:3000 | Interfaz principal React |
+| Dashboard | http://localhost:346721 | Interfaz principal React |
 | API Principal | http://localhost:4123 | Backend Node.js |
 | API Agents | http://localhost:12000 | API de gestión de agentes |
 | n8n | http://localhost:5678 | Workflow automation |

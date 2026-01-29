@@ -24,7 +24,7 @@ echo "📊 Estado Actual:"
 echo "==============="
 check_service "API Principal" "4123" "http://localhost:4123/health"
 check_service "API Agents" "12000" "http://localhost:12000/api/health"
-check_service "Dashboard" "3000" "http://localhost:3000"
+check_service "Dashboard" "346721" "http://localhost:346721"
 echo "==============="
 
 # Preguntar qué servicios iniciar
@@ -67,9 +67,9 @@ case $REPLY in
         ;;
     3)
         echo "🖥️ Iniciando solo Dashboard..."
-        cd dashboard && serve -s dist -l 3000 &
+        cd dashboard && serve -s dist -l 346721 &
         DASHBOARD_PID=$!
-        echo "✅ Dashboard iniciado en http://localhost:3000"
+        echo "✅ Dashboard iniciado en http://localhost:346721"
         echo "Para detener: pkill -f 'serve -s dist'"
         ;;
     4)
@@ -82,7 +82,7 @@ case $REPLY in
         
         echo ""
         echo "🔹 Frontend:"
-        check_service "Dashboard" "3000" "http://localhost:3000"
+        check_service "Dashboard" "346721" "http://localhost:346721"
         check_service "n8n" "5678" "http://localhost:5678"
         
         echo ""
