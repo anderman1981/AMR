@@ -1,6 +1,6 @@
-Este es el Master Blueprint diseñado específicamente para ser procesado por una IA de desarrollo (como OpenCode, Antigravity o Cursor). Contiene todas las especificaciones técnicas, arquitectónicas y de seguridad discutidas para el Sistema Maestro GSD.
+Este es el Master Blueprint diseñado específicamente para ser procesado por una IA de desarrollo (como OpenCode, Antigravity o Cursor). Contiene todas las especificaciones técnicas, arquitectónicas y de seguridad discutidas para el Sistema Maestro AMROIS.
 
-🤖 INSTRUCCIONES DE CONSTRUCCIÓN: SISTEMA MAESTRO GSD
+🤖 INSTRUCCIONES DE CONSTRUCCIÓN: SISTEMA MAESTRO AMROIS
 📌 VISIÓN GENERAL
 
 Construir un sistema de orquestación distribuida para 50+ dispositivos Windows.
@@ -32,9 +32,9 @@ DeploymentTokens: token (string, PK), max_uses, current_uses, expires_at.
 
 Implementar un Middleware en Laravel que valide:
 
-Header X-GSD-Signature: hash_hmac('sha256', payload + timestamp, device_token).
+Header X-AMROIS-Signature: hash_hmac('sha256', payload + timestamp, device_token).
 
-Header X-GSD-Timestamp: Tolerancia máxima de 300 segundos (Replay Attack protection).
+Header X-AMROIS-Timestamp: Tolerancia máxima de 300 segundos (Replay Attack protection).
 
 1.3 API Endpoints (api.php)
 

@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # AMROIS Backend API
+  amrois-api:
+    build: .
+    container_name: amrois-api
+    ports:
+      - "4123:4123"
+    environment:
+      - NODE_ENV=production
+      - PORT=4123
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=amrois_system
+      - DB_USER=amrois_user
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_HOST=http://ollama:11434
+      - BOOKS_PATH=/app/books
+      - BOOKS_SCAN_INTERVAL=3600
+    volumes:
+      # Volumen para libros físicos del host
+      - ./books:/app/books:ro
+      # Volumen para logs y configuración
+      - ./data/logs:/app/logs
+      - ./data/uploads:/app/uploads
+      # Volumen para persistencia de datos de agentes
+      - ./data/agents:/app/data/agents
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+  # Dashboard Frontend (React)
+  amrois-dashboard:
+    build: 
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: amrois-dashboard
+    ports:
+      - "4124:4124"
+    environment:
+      - VITE_API_URL=http://localhost:4123
+      - VITE_APP_NAME=AMROIS Dashboard
+    depends_on:
+      - amrois-api
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+  # Database PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: amrois-postgres
+    environment:
+      - POSTGRES_DB=amrois_system
+      - POSTGRES_USER=amrois_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-secure_password}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/migrate:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: amrois-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+  # LLM Service Ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: amrois-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+  # Nginx Reverse Proxy (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: amrois-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - amrois-api
+      - amrois-dashboard
+    restart: unless-stopped
+    networks:
+      - amrois-network
+
+# Volúmenes persistentes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+# Red interna
+networks:
+  amrois-network:
+    driver: bridge
