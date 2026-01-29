@@ -106,7 +106,7 @@ npm run dev
 
 | Servicio | URL | Descripción |
 |----------|-----|-------------|
-| Dashboard | http://localhost:346721 | Interfaz principal React (sin Docker) |
+| Dashboard | http://localhost:3467 | Interfaz principal React (sin Docker) |
 | Dashboard | http://localhost:80 | Interfaz principal React (con Docker) |
 | API Principal | http://localhost:4123 | Backend Node.js |
 | API Agents | http://localhost:12000 | API de gestión de agentes |

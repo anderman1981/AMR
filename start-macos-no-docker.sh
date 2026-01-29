@@ -30,8 +30,8 @@ show_status() {
     # Verificar API de Agents (puerto 12000)
     check_service "API Agents" "12000" "http://localhost:12000/api/health"
     
-    # Verificar Dashboard (puerto 346721)
-    check_service "Dashboard" "346721" "http://localhost:346721"
+    # Verificar Dashboard (puerto 3467)
+    check_service "Dashboard" "3467" "http://localhost:3467"
     
     # Verificar n8n (puerto 5678)
     check_service "n8n" "5678" "http://localhost:5678"
@@ -124,7 +124,7 @@ sleep 5
 
 # Iniciar frontend con serve
 echo "🖥️ Iniciando Dashboard..."
-cd dashboard && serve -s dist -l 346721 &
+cd dashboard && serve -s dist -l 3467 &
 DASHBOARD_PID=$!
 cd ..
 
@@ -133,7 +133,7 @@ echo "✅ Sistema iniciado!"
 show_status
 echo ""
 echo "🌐 URLs de acceso:"
-echo "- Dashboard Principal: http://localhost:346721"
+echo "- Dashboard Principal: http://localhost:3467"
 echo "- API Principal: http://localhost:4123"
 echo "- API Agents: http://localhost:12000"
 echo "- n8n: http://localhost:5678"
