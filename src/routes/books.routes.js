@@ -140,12 +140,12 @@ router.post('/scan', async (req, res) => {
     let addedCount = 0
     
     for (const file of files) {
+      // Clean title from filename (defined outside try block)
+      let title = path.basename(file.name, path.extname(file.name))
+      title = title.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      
       try {
         console.log(`📖 Processing: ${file.name}`)
-        
-        // Clean title from filename
-        let title = path.basename(file.name, path.extname(file.name))
-        title = title.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
         
         // Check if book already exists
         const existing = await query('SELECT id FROM books WHERE file_path = $1', [file.path])
@@ -162,8 +162,13 @@ router.post('/scan', async (req, res) => {
           [title, file.path, file.size, file.format]
         )
         
-        console.log(`✅ Added: ${title} (ID: ${result.rows[0].id})`)
-        addedCount++
+        if (result.rows && result.rows.length > 0) {
+          console.log(`✅ Added: ${title} (ID: ${result.rows[0].id})`)
+          addedCount++
+        } else {
+          console.log(`⚠️  Added but no ID returned: ${title}`)
+          addedCount++
+        }
         
       } catch (error) {
         console.error(`❌ Error adding ${file.name}:`, error.message)
@@ -172,7 +177,7 @@ router.post('/scan', async (req, res) => {
       }
     }
     
-    const totalBooksQuery = await query('SELECT COUNT(*) FROM books')
+    const totalBooksQuery = await query('SELECT COUNT(*) as count FROM books')
     const totalBooks = parseInt(totalBooksQuery.rows[0].count)
     
     res.json({

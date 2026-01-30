@@ -7,7 +7,7 @@ import {
   ExclamationCircleOutlined,
   DatabaseOutlined
 } from '@ant-design/icons'
-import { getBooks, getDevices } from '../services/books'
+import { getBooks } from '../services/books'
 
 const { Title } = Typography
 
@@ -30,7 +30,7 @@ function Dashboard() {
         
         // Fetch books data
         const booksResponse = await getBooks()
-        const books = booksResponse.data || []
+        const books = Array.isArray(booksResponse) ? booksResponse : booksResponse.data || []
         
         // Calculate book statistics
         const totalBooks = books.length
@@ -130,7 +130,7 @@ function Dashboard() {
                   </span>
                 </div>
                 <Progress 
-                  percent={Math.round((stats.processedBooks / stats.totalBooks) * 100)} 
+                  percent={stats.totalBooks > 0 ? Math.round((stats.processedBooks / stats.totalBooks) * 100) : 0} 
                   status="active"
                   strokeColor="#52c41a"
                 />
