@@ -26,14 +26,14 @@ dotenv.config()
 
 // Inicializar Express
 const app = express()
-const PORT = process.env.PORT || 4123
+const PORT = process.env.PORT || 4126
 
 // Middlewares de seguridad y utilidad
 app.use(helmet())
 app.use(compression())
 app.use(morgan('combined'))
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:4124',
+  origin: process.env.FRONTEND_URL || 'http://localhost:4127',
   credentials: true
 }))
 
@@ -107,7 +107,7 @@ app.use((error, req, res, next) => {
 // Iniciar servidor
 const server = app.listen(PORT, () => {
   console.log(`🚀 AMROIS Server iniciado en puerto ${PORT}`)
-  console.log(`📖 Dashboard disponible en: http://localhost:${PORT === 4123 ? 4124 : PORT - 1}`)
+  console.log(`📖 Dashboard disponible en: http://localhost:${PORT === 4126 ? 4127 : PORT - 1}`)
   console.log(`🔗 API disponible en: http://localhost:${PORT}`)
   console.log(`📊 Endpoint de salud: http://localhost:${PORT}/health`)
 })

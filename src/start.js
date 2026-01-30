@@ -7,8 +7,8 @@ const startServer = async () => {
     await initializeDatabase()
     
     console.log('✅ AMROIS Backend iniciado correctamente')
-    console.log(`📊 API disponible en: http://localhost:${process.env.PORT || 4123}`)
-    console.log(`🏥 Health check: http://localhost:${process.env.PORT || 4123}/health`)
+    console.log(`📊 API disponible en: http://localhost:${process.env.PORT || 4126}`)
+    console.log(`🏥 Health check: http://localhost:${process.env.PORT || 4126}/health`)
     
   } catch (error) {
     console.error('❌ Error al iniciar el servidor:', error)
