@@ -1,5 +1,6 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+import Database from 'better-sqlite3'
+import path from 'path'
+import { promises as fs } from 'fs'
 
 class SQLiteDatabase {
   constructor(dbPath = './data/amrois.db') {
@@ -10,17 +11,17 @@ class SQLiteDatabase {
   async connect() {
     try {
       // Asegurar que el directorio existe
-      const dbDir = path.dirname(this.dbPath);
-      require('fs').mkdirSync(dbDir, { recursive: true });
+      const dbDir = path.dirname(this.dbPath)
+      await fs.mkdir(dbDir, { recursive: true })
 
-      this.db = new Database(this.dbPath);
-      console.log('✅ Conectado a SQLite con better-sqlite3');
+      this.db = new Database(this.dbPath)
+      console.log('✅ Conectado a SQLite con better-sqlite3')
       
-      this.initTables();
-      return this.db;
+      this.initTables()
+      return this.db
     } catch (err) {
-      console.error('Error conectando a SQLite:', err);
-      throw err;
+      console.error('Error conectando a SQLite:', err)
+      throw err
     }
   }
 
@@ -84,7 +85,7 @@ class SQLiteDatabase {
       )`,
       
       `CREATE TABLE IF NOT EXISTS books (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         file_path TEXT NOT NULL,
         category TEXT,
@@ -140,4 +141,4 @@ class SQLiteDatabase {
   }
 }
 
-module.exports = SQLiteDatabase;
+export default SQLiteDatabase

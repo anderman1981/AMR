@@ -3,7 +3,7 @@ import crypto from 'crypto'
 /**
  * Middleware para verificar firmas HMAC de dispositivos
  */
-export const verifyHMAC = (req, res, next) => {
+export const verifyHMAC = async (req, res, next) => {
   try {
     // Obtener headers de autenticación
     const signature = req.headers['x-amrois-signature']

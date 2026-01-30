@@ -1,27 +1,30 @@
-const sqlite3 = require('sqlite3').verbose();
-const pg = require('pg');
-const path = require('path');
-require('dotenv').config();
+import pkg from 'pg'
+import path from 'path'
+import { config } from 'dotenv'
 
-let dbInstance = null;
+config()
+
+const { Pool } = pkg
+let dbInstance = null
 
 class DatabaseFactory {
   static async getConnection() {
     if (dbInstance) {
-      return dbInstance;
+      return dbInstance
     }
 
-    const dbType = process.env.DB_TYPE || 'postgres';
+    const dbType = process.env.DB_TYPE || 'postgres'
     
     if (dbType === 'sqlite') {
-      const SQLiteDatabase = require('./sqlite');
-      const dbPath = process.env.DB_PATH || './data/amrois.db';
-      dbInstance = new SQLiteDatabase(dbPath);
-      await dbInstance.connect();
-      console.log('🗄️ Usando SQLite para desarrollo local');
+      // Import SQLite dynamically since it uses CommonJS
+      const { default: SQLiteDatabase } = await import('./sqlite.js')
+      const dbPath = process.env.DB_PATH || './data/amrois.db'
+      dbInstance = new SQLiteDatabase(dbPath)
+      await dbInstance.connect()
+      console.log('🗄️ Usando SQLite para desarrollo local')
     } else {
       // PostgreSQL
-      const pool = new pg.Pool({
+      const pool = new Pool({
         host: process.env.DB_HOST || 'localhost',
         port: process.env.DB_PORT || 5432,
         database: process.env.DB_NAME || 'amrois_system',
@@ -30,63 +33,63 @@ class DatabaseFactory {
         max: 20,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
-      });
+      })
 
       pool.on('error', (err) => {
-        console.error('Error en pool PostgreSQL:', err);
-      });
+        console.error('Error en pool PostgreSQL:', err)
+      })
 
       // Adaptar la interfaz para que sea compatible
       dbInstance = {
         pool,
         async run(sql, params = []) {
-          const client = await this.pool.connect();
+          const client = await this.pool.connect()
           try {
-            const res = await client.query(sql, params);
-            return { id: res.rows[0]?.id, changes: res.rowCount };
+            const res = await client.query(sql, params)
+            return { id: res.rows[0]?.id, changes: res.rowCount }
           } finally {
-            client.release();
+            client.release()
           }
         },
         
         async get(sql, params = []) {
-          const client = await this.pool.connect();
+          const client = await this.pool.connect()
           try {
-            const res = await client.query(sql, params);
-            return res.rows[0];
+            const res = await client.query(sql, params)
+            return res.rows[0]
           } finally {
-            client.release();
+            client.release()
           }
         },
         
         async all(sql, params = []) {
-          const client = await this.pool.connect();
+          const client = await this.pool.connect()
           try {
-            const res = await client.query(sql, params);
-            return res.rows;
+            const res = await client.query(sql, params)
+            return res.rows
           } finally {
-            client.release();
+            client.release()
           }
         },
         
         async close() {
-          await this.pool.end();
-          console.log('✅ Pool PostgreSQL cerrado');
+          await this.pool.end()
+          console.log('✅ Pool PostgreSQL cerrado')
         }
-      };
+      }
 
-      console.log('🗄️ Usando PostgreSQL');
+      console.log('🗄️ Usando PostgreSQL')
     }
 
-    return dbInstance;
+    return dbInstance
   }
 
   static async closeConnection() {
     if (dbInstance) {
-      await dbInstance.close();
-      dbInstance = null;
+      await dbInstance.close()
+      dbInstance = null
     }
   }
 }
 
-module.exports = DatabaseFactory;
+export default DatabaseFactory
