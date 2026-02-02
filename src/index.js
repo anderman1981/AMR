@@ -30,7 +30,14 @@ const app = express()
 const PORT = process.env.PORT || 3467
 
 // Middlewares de seguridad y utilidad
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "frame-ancestors": ["'self'", "http://localhost:3465", "http://localhost:3466", "http://localhost:5173"]
+    }
+  }
+}))
 app.use(compression())
 app.use(morgan('combined'))
 app.use(cors({

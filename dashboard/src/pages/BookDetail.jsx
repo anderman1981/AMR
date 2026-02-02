@@ -5,6 +5,7 @@ import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTe
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
+import BookForms from '../components/BookForms'
 
 const { Header, Content } = Layout
 const { Title, Text } = Typography
@@ -122,7 +123,7 @@ function BookDetail() {
             </Header>
 
             <Content style={{ padding: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 0.7fr 0.7fr 0.9fr 0.9fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
 
                     {/* 1. PDF Viewer Section */}
                     <Card
@@ -284,6 +285,9 @@ function BookDetail() {
                             />
                         </Space.Compact>
                     </Card>
+
+                    {/* 6. Forms Section */}
+                    <BookForms bookId={id} />
 
                 </div>
             </Content>

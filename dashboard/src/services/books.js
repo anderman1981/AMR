@@ -66,3 +66,29 @@ export const chatWithBook = async (bookId, message) => {
   const response = await api.post(`/api/books/${bookId}/chat`, { message })
   return response.data
 }
+
+// Forms
+export const extractBookForms = async (bookId) => {
+  const response = await api.post(`/api/books/${bookId}/extract-forms`)
+  return response.data
+}
+
+export const getBookForms = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}/forms`)
+  return response.data
+}
+
+export const saveFormResponses = async (formId, responses) => {
+  const response = await api.post(`/api/books/forms/${formId}/responses`, { responses })
+  return response.data
+}
+
+export const getFormResponses = async (formId) => {
+  const response = await api.get(`/api/books/forms/${formId}/responses`)
+  return response.data
+}
+
+export const deleteForm = async (formId) => {
+  const response = await api.delete(`/api/books/forms/${formId}`)
+  return response.data
+}

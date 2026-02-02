@@ -6,6 +6,7 @@ import { promises as fs } from 'fs'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import { extractTextFromFile } from '../utils/extractor.js'
+import { extractFormsFromText } from '../utils/formExtractor.js'
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url)
@@ -570,6 +571,209 @@ Please provide a helpful, accurate answer based on the book's content and analys
     }
     
     res.status(500).json({ error: 'Error processing chat request' })
+  }
+})
+
+// ============= FORMS ENDPOINTS =============
+
+// Extract forms from book content
+router.post('/:id/extract-forms', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Get book details
+    const bookResult = await query('SELECT * FROM books WHERE id = $1', [id])
+    if (bookResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    const book = bookResult.rows[0]
+
+    // Get book content
+    let content = book.content
+    if (!content) {
+      try {
+        content = await extractTextFromFile(book.file_path)
+      } catch (err) {
+        console.error('Error extracting book content:', err)
+        return res.status(500).json({ error: 'Could not extract book content' })
+      }
+    }
+
+    // Extract forms using AI
+    const forms = await extractFormsFromText(content, book.name)
+
+    // Save forms to database
+    const savedForms = []
+    for (const form of forms) {
+      const result = await query(
+        `INSERT INTO book_forms (book_id, title, page_number, questions) 
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [id, form.title, form.pageNumber, JSON.stringify(form.questions)]
+      )
+      savedForms.push(result.rows[0])
+    }
+
+    res.json({
+      success: true,
+      formsExtracted: savedForms.length,
+      forms: savedForms.map(f => ({
+        id: f.id,
+        title: f.title,
+        pageNumber: f.page_number,
+        questions: JSON.parse(f.questions),
+        extractedAt: f.extracted_at
+      }))
+    })
+
+  } catch (error) {
+    console.error('Error extracting forms:', error)
+    
+    if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
+      return res.status(503).json({ 
+        error: 'Ollama service is not available. Please ensure Ollama is running.',
+        details: error.message
+      })
+    }
+    
+    res.status(500).json({ error: 'Error extracting forms' })
+  }
+})
+
+// Get all forms for a book
+router.get('/:id/forms', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Get forms
+    const formsResult = await query(
+      'SELECT * FROM book_forms WHERE book_id = $1 ORDER BY page_number, id',
+      [id]
+    )
+
+    // Get user responses for each form
+    const forms = []
+    for (const form of formsResult.rows) {
+      const responsesResult = await query(
+        'SELECT * FROM form_responses WHERE form_id = $1 ORDER BY updated_at DESC LIMIT 1',
+        [form.id]
+      )
+
+      forms.push({
+        id: form.id,
+        title: form.title,
+        pageNumber: form.page_number,
+        questions: JSON.parse(form.questions),
+        extractedAt: form.extracted_at,
+        userResponses: responsesResult.rows.length > 0 
+          ? JSON.parse(responsesResult.rows[0].responses)
+          : null,
+        lastUpdated: responsesResult.rows.length > 0
+          ? responsesResult.rows[0].updated_at
+          : null
+      })
+    }
+
+    res.json({ forms })
+
+  } catch (error) {
+    console.error('Error getting forms:', error)
+    res.status(500).json({ error: 'Error retrieving forms' })
+  }
+})
+
+// Save user responses to a form
+router.post('/forms/:formId/responses', async (req, res) => {
+  try {
+    const { formId } = req.params
+    const { responses } = req.body
+
+    if (!responses || typeof responses !== 'object') {
+      return res.status(400).json({ error: 'Invalid responses format' })
+    }
+
+    // Check if form exists
+    const formResult = await query('SELECT * FROM book_forms WHERE id = $1', [formId])
+    if (formResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Form not found' })
+    }
+
+    // Check if user already has responses for this form
+    const existingResult = await query(
+      'SELECT * FROM form_responses WHERE form_id = $1 AND user_id IS NULL LIMIT 1',
+      [formId]
+    )
+
+    let result
+    if (existingResult.rows.length > 0) {
+      // Update existing responses
+      result = await query(
+        `UPDATE form_responses 
+         SET responses = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2 
+         RETURNING *`,
+        [JSON.stringify(responses), existingResult.rows[0].id]
+      )
+    } else {
+      // Insert new responses
+      result = await query(
+        `INSERT INTO form_responses (form_id, user_id, responses) 
+         VALUES ($1, NULL, $2) 
+         RETURNING *`,
+        [formId, JSON.stringify(responses)]
+      )
+    }
+
+    res.json({
+      success: true,
+      responseId: result.rows[0].id,
+      updatedAt: result.rows[0].updated_at
+    })
+
+  } catch (error) {
+    console.error('Error saving form responses:', error)
+    res.status(500).json({ error: 'Error saving responses' })
+  }
+})
+
+// Get user responses for a specific form
+router.get('/forms/:formId/responses', async (req, res) => {
+  try {
+    const { formId } = req.params
+
+    const result = await query(
+      'SELECT * FROM form_responses WHERE form_id = $1 AND user_id IS NULL ORDER BY updated_at DESC LIMIT 1',
+      [formId]
+    )
+
+    if (result.rows.length === 0) {
+      return res.json({ responses: null })
+    }
+
+    res.json({
+      formId: parseInt(formId),
+      responses: JSON.parse(result.rows[0].responses),
+      completedAt: result.rows[0].completed_at,
+      updatedAt: result.rows[0].updated_at
+    })
+
+  } catch (error) {
+    console.error('Error getting form responses:', error)
+    res.status(500).json({ error: 'Error retrieving responses' })
+  }
+})
+
+// Delete a form
+router.delete('/forms/:formId', async (req, res) => {
+  try {
+    const { formId } = req.params
+
+    await query('DELETE FROM book_forms WHERE id = $1', [formId])
+
+    res.json({ success: true })
+
+  } catch (error) {
+    console.error('Error deleting form:', error)
+    res.status(500).json({ error: 'Error deleting form' })
   }
 })
 
