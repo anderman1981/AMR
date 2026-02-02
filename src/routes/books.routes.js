@@ -414,4 +414,25 @@ router.post('/:id/task', async (req, res) => {
   }
 })
 
+// Update book progress
+router.put('/:id/progress', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { progress } = req.body
+    
+    // Validate progress
+    const progressVal = parseInt(progress)
+    if (isNaN(progressVal) || progressVal < 0 || progressVal > 100) {
+      return res.status(400).json({ error: 'Invalid progress value (0-100)' })
+    }
+
+    await query('UPDATE books SET progress = $1 WHERE id = $2', [progressVal, id])
+    
+    res.json({ success: true, message: 'Progress updated', progress: progressVal })
+  } catch (error) {
+    console.error('Error updating progress:', error)
+    res.status(500).json({ error: 'Error updating progress' })
+  }
+})
+
 export default router

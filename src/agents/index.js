@@ -30,8 +30,19 @@ const runReaderAgent = async (task, bookId) => {
       
       if (!book) throw new Error('Book not found')
 
-      // Mock Reading
-      await new Promise(r => setTimeout(r, 3000))
+      // Mock Reading with Progress Updates
+      console.log('Simulating reading progress...')
+      const steps = [10, 30, 50, 70, 90, 100]
+      
+      for (const progress of steps) {
+        await new Promise(r => setTimeout(r, 800)) // fast simulation
+        try {
+            await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress })
+            console.log(`📖 Reader Progress: ${progress}% for Book ${bookId}`)
+        } catch (e) {
+            console.error('Failed to update progress:', e.message)
+        }
+      }
       
       const KEYWORDS = {
         business: ['venta', 'negocio', 'marketing', 'dinero', 'rico', 'empresa', 'lider'],
