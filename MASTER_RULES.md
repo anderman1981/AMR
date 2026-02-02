@@ -42,6 +42,7 @@ All AI-generated artifacts must be archived in `logs/AI_HISTORY/`:
 - `logs/AI_HISTORY/DOCS/`: Versioned walkthroughs.
 - `logs/AI_HISTORY/FEAT/`: Feature descriptions.
 - `logs/AI_HISTORY/FIX/`: Bug fix logs.
+- `logs/AI_HISTORY/GIT/`: Git operation and consolidation logs.
 
 **Naming Convention**: `[TYPE]-[VERSION]-[BRANCH].md` (e.g., `walkthrough-v1.2.0-main.md`)
 
