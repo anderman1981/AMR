@@ -128,7 +128,9 @@ function BookForms({ bookId }) {
     if (loading) {
         return (
             <Card style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spin tip="Cargando formularios..." />
+                <Spin tip="Cargando formularios...">
+                    <div style={{ padding: '20px' }} />
+                </Spin>
             </Card>
         )
     }
