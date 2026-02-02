@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/start.js",
-    "watch:deploy": "./auto-deploy-watcher.sh",
+    "watch:deploy": "./scripts/launch/auto-deploy-watcher.sh",
+    "dev:admin": "node admin/server.js",
     "dev": "nodemon src/start.js",
     "dev:agents": "nodemon src/agents/index.js",
     "check-api": "curl -f http://localhost:12000/api/health 2>/dev/null && echo '✅ API Agents Activa' || echo '❌ API Agents Inactiva'",
