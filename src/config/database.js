@@ -21,26 +21,29 @@ export const query = async (text, params = []) => {
     // Use regex to replace whole word NOW() case insensitive
     sqliteQuery = sqliteQuery.replace(/NOW\(\)/gi, "datetime('now')")
     
+    // Check for RETURNING clause (Postgres style supported by some SQLite builds or just generic logic)
+    // Actually better-sqlite3 supports RETURNING in .get() or .all()
+    const isReturning = /RETURNING/i.test(text)
+    
     // Adaptar la consulta para que sea compatible con SQLite/PostgreSQL
     let result
-    if (text.trim().toLowerCase().startsWith('select')) {
-      result = await dbInstance.all(sqliteQuery, params)
+    if (text.trim().toLowerCase().startsWith('select') || isReturning) {
+      if (text.trim().toLowerCase().startsWith('select') && text.toLowerCase().includes('limit 1') && !text.toLowerCase().includes('count(*)')) {
+         // Optimization: use get() for single row fetches if trivial, but .all() is safer for general use
+         result = await dbInstance.all(sqliteQuery, params)
+      } else {
+         result = await dbInstance.all(sqliteQuery, params)
+      }
       // Formatear resultado para que sea compatible con el código existente
-      return { rows: result, rowCount: result.length }
+      return { rows: result || [], rowCount: result ? result.length : 0 }
     } else if (text.trim().toLowerCase().startsWith('insert')) {
       result = await dbInstance.run(sqliteQuery, params)
-      // Para INSERT, necesitamos obtener los datos del resultado
-      if (result.lastInsertRowid) {
-        const insertedRow = await dbInstance.get('SELECT * FROM books WHERE rowid = ?', [result.lastInsertRowid])
-        return { rows: [insertedRow], rowCount: result.changes }
+      // Para INSERT sin RETURNING
+      return { 
+          rows: [], 
+          rowCount: result.changes,
+          insertId: result.lastInsertRowid // Expose ID for callers who don't use RETURNING
       }
-      return { rows: [], rowCount: result.changes }
-    } else if (text.trim().toLowerCase().startsWith('update')) {
-      result = await dbInstance.run(sqliteQuery, params)
-      return { rows: [], rowCount: result.changes }
-    } else if (text.trim().toLowerCase().startsWith('delete')) {
-      result = await dbInstance.run(sqliteQuery, params)
-      return { rows: [], rowCount: result.changes }
     } else {
       result = await dbInstance.run(sqliteQuery, params)
       return { rows: [], rowCount: result.changes }

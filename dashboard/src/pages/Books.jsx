@@ -78,6 +78,21 @@ function Books() {
     scanMutation.mutate()
   }
 
+  // Mutation para crear tareas
+  const taskMutation = useMutation(({ id, type }) => booksService.createTask(id, type), {
+    onSuccess: (data, variables) => {
+      message.success(`Tarea '${variables.type}' iniciada para el libro`)
+      queryClient.invalidateQueries('books')
+    },
+    onError: () => {
+      message.error('Error al crear la tarea')
+    }
+  })
+
+  const handleCreateTask = (id, type) => {
+    taskMutation.mutate({ id, type })
+  }
+
   // Columnas para la tabla de libros
   const columns = [
     {
@@ -119,15 +134,44 @@ function Books() {
       dataIndex: 'progress',
       key: 'progress',
       render: (progress) => <Progress percent={progress} size="small" />
+    },
+    {
+      title: 'Acciones',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            size="small"
+            type="primary"
+            ghost
+            onClick={() => handleCreateTask(record.id, 'reader')}
+            disabled={record.status === 'processing'}
+          >
+            📖 Leer
+          </Button>
+          <Button
+            size="small"
+            onClick={() => handleCreateTask(record.id, 'extractor')}
+          >
+            🧪 Extraer
+          </Button>
+          <Button
+            size="small"
+            onClick={() => handleCreateTask(record.id, 'phrases')}
+          >
+            💬 Frases
+          </Button>
+        </Space>
+      )
     }
   ]
 
   return (
     <div>
       <Title level={2}>📚 Gestión de Libros</Title>
-      
+
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        
+
         {/* Configuración de Ruta Física */}
         <Card title="📁 Configuración de Ruta Física" size="small">
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -136,14 +180,14 @@ function Books() {
               <Text code>{config?.booksPath || booksPath}</Text>
             </div>
             <Space>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<FolderOpenOutlined />}
                 onClick={() => handlePathUpdate('/ruta/nueva')}
               >
                 Cambiar Ruta
               </Button>
-              <Button 
+              <Button
                 icon={<SyncOutlined />}
                 loading={scanMutation.isLoading}
                 onClick={handleScan}

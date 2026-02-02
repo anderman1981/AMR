@@ -69,7 +69,8 @@ function Dashboard() {
       
       {loading ? (
         <div style={{ textAlign: 'center', padding: '50px' }}>
-          <Spin size="large" tip="Cargando datos del sistema..." />
+          <Spin size="large" />
+          <div style={{ marginTop: '10px' }}>Cargando datos del sistema...</div>
         </div>
       ) : (
         <Row gutter={[16, 16]}>

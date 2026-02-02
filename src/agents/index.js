@@ -1,131 +1,45 @@
-
 import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
 import axios from 'axios'
 import systeminformation from 'systeminformation'
 import crypto from 'crypto'
+import dotenv from 'dotenv'
 
 dotenv.config()
 
-// --- Express Server (Port 12000) ---
 const app = express()
-const PORT = process.env.AGENT_PORT || 12000
-const API_URL = process.env.VITE_API_URL || 'http://localhost:3467'
+const PORT = 12001 // Port 12001 to avoid conflict
+const API_URL = process.env.API_URL || 'http://localhost:3467'
+const DEPLOYMENT_TOKEN = 'dev-token' // Should match DB
 
-app.use(cors())
 app.use(express.json())
 
-// Agent State
-const agentState = {
-  status: 'initializing',
-  deviceId: null,
-  deviceToken: null,
-  deploymentToken: process.env.DEPLOYMENT_TOKEN || 'dev-token',
-  lastHeartbeat: null,
-  tasksProcessed: 0
-}
+// Device Identity
+let DEVICE_ID = null
+let DEVICE_TOKEN = null
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: agentState.status === 'active' ? 'ok' : 'initializing',
-    service: 'AMROIS Agents API (MacOS/Server)',
-    deviceId: agentState.deviceId,
-    timestamp: new Date().toISOString()
-  })
-})
+// --- AGENT LOGIC ---
 
-const server = app.listen(PORT, () => {
-  console.log(`🤖 AMROIS Agents API & Worker started on port ${PORT}`)
-})
-
-// --- Active Agent Client Logic ---
-
-async function registerDevice() {
-  try {
-    const osInfo = await systeminformation.osInfo()
-    const payload = {
-      deployment_token: agentState.deploymentToken,
-      device_info: {
-        name: `MacOS-${osInfo.hostname}`,
-        platform: 'macos',
-        version: osInfo.release,
-        architecture: osInfo.arch,
-        department: 'Development'
-      }
-    }
-
-    console.log('📝 Registering device...')
-    const res = await axios.post(`${API_URL}/api/devices/register`, payload)
-    
-    agentState.deviceId = res.data.data.device_id
-    agentState.deviceToken = res.data.data.device_token
-    agentState.status = 'active'
-    
-    console.log(`✅ Registered as: ${agentState.deviceId}`)
-    startHeartbeat()
-    
-  } catch (error) {
-    console.error('❌ Registration failed:', error.message)
-    if (error.response?.status === 401) {
-       console.warn('⚠️ Token invalid. Running in local-only mode.')
-       agentState.status = 'local-only'
-       agentState.deviceId = 'local-mac-' + Date.now()
-       startHeartbeat() // Start anyway for simulation
-    } else {
-       setTimeout(registerDevice, 5000) // Retry
-    }
-  }
-}
-
-function startHeartbeat() {
-  setInterval(async () => {
-    if (!agentState.deviceId) return
-
-    try {
-      console.log(`💓 Heartbeat for ${agentState.deviceId}`)
-      agentState.lastHeartbeat = new Date()
-      
-      // In a real implementation, we would sign this request with agentState.deviceToken
-      // For now, we just log activity. The backend would reject unsigned requests if robust auth is on.
-      // We will implement full signature if requested by user.
-      
-    } catch (error) {
-      console.error('Heartbeat error:', error.message)
-    }
-  }, 10000)
-}
-
-// Start Client
-setTimeout(registerDevice, 2000) // Wait a bit for server to start
-
-// --- Book Processing Logic ---
-const KEYWORDS = {
-  'tech': ['javascript', 'python', 'code', 'programming', 'software', 'agile'],
-  'business': ['startup', 'lean', 'money', 'finance', 'market', 'strategy'],
-  'fiction': ['novel', 'story', 'character', 'plot', 'drama'],
-  'science': ['physics', 'biology', 'chemistry', 'math', 'universe']
-}
-
-async function processBooks() {
-  if (agentState.status !== 'active' && agentState.status !== 'local-only') return
+// 1. Reader Agent: Categorizes and creates a summary card
+const runReaderAgent = async (task, bookId) => {
+  console.log(`📖 Reader Agent executing for Book ID: ${bookId}`)
   
+  // Fetch book to ensure it exists
   try {
-    // 1. Fetch pending books (unprocessed)
-    const res = await axios.get(`${API_URL}/api/books`)
-    const books = res.data.filter(b => !b.processed && b.status !== 'processing')
-    
-    if (books.length === 0) return
+      const bookRes = await axios.get(`${API_URL}/api/books`)
+      const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
+      
+      if (!book) throw new Error('Book not found')
 
-    console.log(`📚 Found ${books.length} unprocessed books. Starting processing...`)
-    
-    for (const book of books) {
-      console.log(`🧠 Processing book: ${book.name}...`)
+      // Mock Reading
+      await new Promise(r => setTimeout(r, 3000))
       
-      // Mimic "Reading" (In real app, we would download book.file_path and extract text)
-      await new Promise(r => setTimeout(r, 2000)) // Simulate reading time
-      
-      // Categorize
+      const KEYWORDS = {
+        business: ['venta', 'negocio', 'marketing', 'dinero', 'rico', 'empresa', 'lider'],
+        psychology: ['mente', 'psico', 'cerebro', 'emocion', 'vida', 'amor', 'autoestima'],
+        biography: ['historia', 'vida', 'biografia', 'memorias'],
+        tech: ['software', 'codigo', 'programacion', 'datos', 'ia', 'inteligencia']
+      }
+
       let category = 'general'
       let tags = []
       const titleLower = book.name.toLowerCase()
@@ -137,33 +51,185 @@ async function processBooks() {
           break
         }
       }
+
+      // Create Card
+      const summary = `**Analysis by Reader Agent**\n\n**Title**: ${book.name}\n**Category**: ${category.toUpperCase()}\n\nThis book has been scanned. Based on the analysis, it focuses on themes related to ${tags.join(', ') || 'general topics'}.`
       
-      // Generate "Card" Content (Mock)
-      const summary = `Summary of **${book.name}**: This appears to be a ${category} book. It covers key concepts related to ${tags.join(', ')}.`
-      
-      const payload = {
-        category_id: 1, // Default ID
+      await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
         type: 'summary',
+        category_id: 1,
         content: summary,
         tags: tags
-      }
+      })
       
-      try {
-        await axios.post(`${API_URL}/api/books/${book.id}/cards`, payload)
-        console.log(`✅ Generated card for: ${book.name}`)
-      } catch (err) {
-        console.error(`❌ Failed to save card for ${book.name}:`, err.message)
-      }
-    }
-    
-  } catch (error) {
-    console.error('Book processing error:', error.message)
+      return { success: true, message: `Book processed and categorized as ${category}` }
+  } catch (err) {
+      throw new Error(`Failed to run reader agent: ${err.message}`)
   }
 }
 
-// Start Processing Loop
-setInterval(processBooks, 30000) // Check every 30s
+// 2. Extractor Agent: Extracts best parts
+const runExtractorAgent = async (task, bookId) => {
+  console.log(`🧪 Extractor Agent executing for Book ID: ${bookId}`)
+  await new Promise(r => setTimeout(r, 5000)) // Simulate heavy work
+  
+  const bestParts = [
+    "Chapter 1: The beginning of awareness.",
+    "Key Insight: Success is not final, failure is not fatal.",
+    "Critical Concept: The loop of habit."
+  ]
+  
+  try {
+    await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
+      type: 'key_points',
+      category_id: 1,
+      content: `**Key Extractions**\n\n${bestParts.map(p => `- ${p}`).join('\n')}`,
+      tags: ['extraction', 'highlights']
+    })
+    return { success: true, message: 'Best parts extracted' }
+  } catch (err) {
+    throw new Error(`Failed to run extractor agent: ${err.message}`)
+  }
+}
 
-process.on('SIGTERM', () => {
-  server.close()
+// 3. Phrases Agent: Generates quotes
+const runPhrasesAgent = async (task, bookId) => {
+  console.log(`💬 Phrases Agent executing for Book ID: ${bookId}`)
+  await new Promise(r => setTimeout(r, 2000))
+  
+  const quotes = [
+    "\"The only way to do great work is to love what you do.\"",
+    "\"It always seems impossible until it's done.\""
+  ]
+  
+  try {
+    await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
+      type: 'quotes',
+      category_id: 1,
+      content: `**Memorable Quotes**\n\n${quotes.join('\n\n')}`,
+      tags: ['quotes', 'wisdom']
+    })
+    return { success: true, message: 'Quotes generated' }
+  } catch (err) {
+    throw new Error(`Failed to run phrases agent: ${err.message}`)
+  }
+}
+
+// --- WORKER LOOP ---
+
+const processTask = async (task, headers) => {
+    console.log(`⚙️  Processing Task ${task.id}: ${task.agent_type}...`)
+    
+    let result = { success: false }
+    let payload = task.payload || {}
+    
+    // Parse payload if it's a string (SQLite returns JSON as string)
+    if (typeof payload === 'string') {
+        try {
+            payload = JSON.parse(payload)
+        } catch (e) {
+            console.error('Failed to parse task payload:', e)
+            payload = {}
+        }
+    }
+
+    const { book_id, action } = payload 
+
+    try {
+        if (action === 'reader') {
+            result = await runReaderAgent(task, book_id)
+        } else if (action === 'extractor') {
+            result = await runExtractorAgent(task, book_id)
+        } else if (action === 'phrases') {
+            result = await runPhrasesAgent(task, book_id)
+        } else {
+            console.warn('Unknown task action:', action)
+            result = { success: false, message: 'Unknown action' }
+        }
+    } catch (err) {
+        console.error('Task execution failed:', err)
+        result = { success: false, error: err.message }
+    }
+
+    // Report Result
+    try {
+        await axios.post(`${API_URL}/api/devices/${DEVICE_ID}/report`, {
+            task_id: task.id,
+            status: result.success ? 'completed' : 'failed',
+            result: result,
+            error: result.error
+        }, { headers })
+        console.log(`✅ Reported task ${task.id}`)
+    } catch (err) {
+        console.error('Failed to report task:', err.message)
+    }
+}
+
+const startHeartbeat = () => {
+    setInterval(async () => {
+        if (!DEVICE_ID || !DEVICE_TOKEN) return
+
+        try {
+            const timestamp = Date.now().toString()
+            const signature = crypto.createHmac('sha256', DEVICE_TOKEN).update(timestamp).digest('hex')
+            
+            const headers = {
+                'x-device-id': DEVICE_ID,
+                'x-timestamp': timestamp,
+                'x-signature': signature
+            }
+
+            // HEARTBEAT to get tasks
+            const res = await axios.post(`${API_URL}/api/devices/${DEVICE_ID}/heartbeat`, {
+                status: 'online',
+                system_info: { cpu: 10, memory: 20 }
+            }, { headers })
+            
+            const tasks = res.data.data.pending_tasks
+            if (tasks && tasks.length > 0) {
+                console.log(`📦 Received ${tasks.length} tasks`)
+                for (const task of tasks) {
+                    await processTask(task, headers)
+                }
+            }
+            
+        } catch (error) {
+            console.error(`Heartbeat error: ${error.message}`)
+        }
+    }, 5000) // Poll every 5s
+}
+
+const registerDevice = async () => {
+  try {
+    const sys = await systeminformation.osInfo()
+    const payload = {
+      deployment_token: DEPLOYMENT_TOKEN,
+      device_info: {
+        name: `AgentWorker_${sys.hostname}`,
+        department: 'AI_LAB',
+        os: sys.platform
+      }
+    }
+    
+    console.log('📝 Registering agent worker...')
+    const res = await axios.post(`${API_URL}/api/devices/register`, payload)
+    DEVICE_ID = res.data.data.device_id
+    DEVICE_TOKEN = res.data.data.device_token
+    console.log(`✅ Registered as: ${DEVICE_ID} (Port: ${PORT})`)
+    
+    startHeartbeat()
+  } catch (error) {
+    console.error(`❌ Registration failed: ${error.message}. Retrying in 10s...`)
+    setTimeout(registerDevice, 10000)
+  }
+}
+
+// Server for Health check
+app.get('/health', (req, res) => res.json({ status: 'ok', device_id: DEVICE_ID }))
+
+const server = app.listen(PORT, () => {
+    console.log(`🤖 Book Agent Worker running on port ${PORT}`)
+    registerDevice()
 })
+
+process.on('SIGTERM', () => server.close())

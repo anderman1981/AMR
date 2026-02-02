@@ -56,6 +56,12 @@ export const scanBooks = async () => {
   return response.data
 }
 
+// Crear tarea de agente
+export const createTask = async (bookId, type) => {
+  const response = await api.post(`/api/books/${bookId}/task`, { type })
+  return response.data
+}
+
 export const deleteBook = async (bookId) => {
   const response = await api.delete(`/api/books/${bookId}`)
   return response.data
