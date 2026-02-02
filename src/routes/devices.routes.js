@@ -1,5 +1,6 @@
 import express from 'express'
 import { query } from '../config/database.js'
+import crypto from 'crypto'
 
 const router = express.Router()
 

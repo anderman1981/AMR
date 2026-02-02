@@ -12,9 +12,14 @@ export const query = async (text, params = []) => {
   try {
     // Convertir parámetros de estilo PostgreSQL ($1, $2) a SQLite (?, ?)
     let sqliteQuery = text
+    
     if (params.length > 0) {
       sqliteQuery = text.replace(/\$\d+/g, '?')
     }
+    
+    // Replace Postgres NOW() with SQLite datetime('now')
+    // Use regex to replace whole word NOW() case insensitive
+    sqliteQuery = sqliteQuery.replace(/NOW\(\)/gi, "datetime('now')")
     
     // Adaptar la consulta para que sea compatible con SQLite/PostgreSQL
     let result

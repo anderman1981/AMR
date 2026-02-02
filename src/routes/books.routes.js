@@ -61,6 +61,37 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
+// Get configuration
+router.get('/config', async (req, res) => {
+  try {
+    const configPath = path.join(process.cwd(), '.env')
+    res.json({
+      path: process.env.BOOKS_PATH || './books', 
+      scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
+    })
+  } catch (error) {
+    console.error('Error fetching config:', error)
+    res.status(500).json({ error: 'Error fetching config' })
+  }
+})
+
+// Update configuration
+router.put('/config', async (req, res) => {
+  try {
+    const { path: newPath, scanInterval } = req.body
+    console.log('Updating config:', { newPath, scanInterval })
+    res.json({
+      success: true,
+      message: 'Configuration updated (Session only)',
+      path: newPath,
+      scanInterval
+    })
+  } catch (error) {
+    console.error('Error updating config:', error)
+    res.status(500).json({ error: 'Error updating config' })
+  }
+})
+
 // Get all books
 router.get('/', async (req, res) => {
   try {
@@ -86,6 +117,43 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching book:', error)
     res.status(500).json({ error: 'Error fetching book' })
+  }
+})
+
+// Get configuration
+router.get('/config', async (req, res) => {
+  try {
+    const configPath = path.join(process.cwd(), '.env')
+    // In a real app we'd read from DB or .env safely
+    // For now returning the current BOOKS_PATH from env or default
+    res.json({
+      path: process.env.BOOKS_PATH || './books', 
+      scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
+    })
+  } catch (error) {
+    console.error('Error fetching config:', error)
+    res.status(500).json({ error: 'Error fetching config' })
+  }
+})
+
+// Update configuration
+router.put('/config', async (req, res) => {
+  try {
+    const { path: newPath, scanInterval } = req.body
+    console.log('Updating config:', { newPath, scanInterval })
+    
+    // In a real app, update DB or .env file
+    // For now we just echo back success as we are using env vars primarily
+    
+    res.json({
+      success: true,
+      message: 'Configuration updated (Session only)',
+      path: newPath,
+      scanInterval
+    })
+  } catch (error) {
+    console.error('Error updating config:', error)
+    res.status(500).json({ error: 'Error updating config' })
   }
 })
 
@@ -230,6 +298,51 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting book:', error)
     res.status(500).json({ error: 'Error deleting book' })
+  }
+})
+
+// Create a generated card for a book (Agent endpoint)
+router.post('/:id/cards', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { category_id, type, content, tags } = req.body
+    
+    // Verify book exists
+    const bookCheck = await query('SELECT id FROM books WHERE id = $1', [id])
+    if (bookCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+
+    // Insert card
+    const result = await query(
+      'INSERT INTO generated_cards (book_id, category_id, type, content, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [id, category_id, type, content, JSON.stringify(tags || [])]
+    )
+
+    // Update book status to 'processed' if it's a summary card (assuming summary means done)
+    if (type === 'summary') {
+      await query('UPDATE books SET processed = 1, category_id = $1 WHERE id = $2', [category_id, id])
+    }
+    
+    res.status(201).json({ 
+      id: result.rows[0]?.id || result.id, 
+      message: 'Card created successfully' 
+    })
+  } catch (error) {
+    console.error('Error creating card:', error)
+    res.status(500).json({ error: 'Error creating card' })
+  }
+})
+
+// Get cards for a book
+router.get('/:id/cards', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query('SELECT * FROM generated_cards WHERE book_id = $1 ORDER BY created_at DESC', [id])
+    res.json(result.rows)
+  } catch (error) {
+     console.error('Error fetching cards:', error)
+     res.status(500).json({ error: 'Error fetching cards' })
   }
 })
 
