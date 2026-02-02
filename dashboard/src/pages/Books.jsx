@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Upload, Button, Space, Typography, message, Table, Tag, Progress, Modal, List } from 'antd'
-import { InboxOutlined, FolderOpenOutlined, SyncOutlined } from '@ant-design/icons'
+import { InboxOutlined, FolderOpenOutlined, SyncOutlined, RobotOutlined, SearchOutlined, MessageOutlined } from '@ant-design/icons'
 import { useDropzone } from 'react-dropzone'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import * as booksService from '../services/books'
@@ -12,7 +12,7 @@ function Books() {
   const [booksPath, setBooksPath] = useState('/app/books')
   const [selectedBook, setSelectedBook] = useState(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
-  
+
   const queryClient = useQueryClient()
 
   // Query para obtener libros
@@ -29,9 +29,9 @@ function Books() {
   const { data: bookCards, isLoading: isLoadingCards } = useQuery(
     ['book-cards', selectedBook?.id],
     () => booksService.getBookCards(selectedBook?.id),
-    { 
+    {
       enabled: !!selectedBook,
-      staleTime: 0 
+      staleTime: 0
     }
   )
 
@@ -91,6 +91,22 @@ function Books() {
     scanMutation.mutate()
   }
 
+  // Mutation para crear tareas de agentes
+  const createTaskMutation = useMutation(booksService.createBookTask, {
+    onSuccess: (data) => {
+      message.success(data.message || 'Tarea creada correctamente')
+      queryClient.invalidateQueries('books')
+    },
+    onError: (error) => {
+      const errorMsg = error.response?.data?.error || 'Error al crear la tarea'
+      message.error(errorMsg)
+    }
+  })
+
+  const handleCreateTask = (id, type) => {
+    createTaskMutation.mutate({ id, type })
+  }
+
   const handleStatusClick = (book) => {
     setSelectedBook(book)
     setIsModalVisible(true)
@@ -132,7 +148,7 @@ function Books() {
       dataIndex: 'status',
       key: 'status',
       render: (status, record) => (
-        <Tag 
+        <Tag
           color={status === 'processed' ? 'green' : status === 'processing' ? 'orange' : 'default'}
           style={{ cursor: 'pointer' }}
           onClick={() => handleStatusClick(record)}
@@ -146,6 +162,39 @@ function Books() {
       dataIndex: 'progress',
       key: 'progress',
       render: (progress) => <Progress percent={progress} size="small" />
+    },
+    {
+      title: 'Acciones de Agentes',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            type="primary"
+            size="small"
+            icon={<RobotOutlined />}
+            disabled={record.status === 'processing' || createTaskMutation.isLoading}
+            onClick={() => handleCreateTask(record.id, 'reader')}
+          >
+            Reader
+          </Button>
+          <Button
+            size="small"
+            icon={<SearchOutlined />}
+            disabled={record.status === 'processing' || createTaskMutation.isLoading}
+            onClick={() => handleCreateTask(record.id, 'extractor')}
+          >
+            Extractor
+          </Button>
+          <Button
+            size="small"
+            icon={<MessageOutlined />}
+            disabled={record.status === 'processing' || createTaskMutation.isLoading}
+            onClick={() => handleCreateTask(record.id, 'phrases')}
+          >
+            Phrases
+          </Button>
+        </Space>
+      )
     }
   ]
 
@@ -264,7 +313,7 @@ function Books() {
       >
         {isLoadingCards ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
-            <SyncOutlined spin style={{ fontSize: '24px' }} /> <br/> Cargando análisis...
+            <SyncOutlined spin style={{ fontSize: '24px' }} /> <br /> Cargando análisis...
           </div>
         ) : (
           <List
