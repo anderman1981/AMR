@@ -5,7 +5,8 @@ import {
   BookOutlined, 
   DesktopOutlined, 
   UnorderedListOutlined, 
-  SettingOutlined 
+  SettingOutlined,
+  RobotOutlined 
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -25,6 +26,11 @@ function Sidebar() {
       key: '/books',
       icon: <BookOutlined />,
       label: 'Libros'
+    },
+    {
+      key: '/agents',
+      icon: <RobotOutlined />,
+      label: 'Agentes'
     },
     {
       key: '/devices',

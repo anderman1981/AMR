@@ -1,5 +1,6 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+import Database from 'better-sqlite3'
+import path from 'path'
+import { promises as fs } from 'fs'
 
 class SQLiteDatabase {
   constructor(dbPath = './data/amrois.db') {
@@ -10,17 +11,17 @@ class SQLiteDatabase {
   async connect() {
     try {
       // Asegurar que el directorio existe
-      const dbDir = path.dirname(this.dbPath);
-      require('fs').mkdirSync(dbDir, { recursive: true });
+      const dbDir = path.dirname(this.dbPath)
+      await fs.mkdir(dbDir, { recursive: true })
 
-      this.db = new Database(this.dbPath);
-      console.log('✅ Conectado a SQLite con better-sqlite3');
+      this.db = new Database(this.dbPath)
+      console.log('✅ Conectado a SQLite con better-sqlite3')
       
-      this.initTables();
-      return this.db;
+      this.initTables()
+      return this.db
     } catch (err) {
-      console.error('Error conectando a SQLite:', err);
-      throw err;
+      console.error('Error conectando a SQLite:', err)
+      throw err
     }
   }
 
@@ -84,7 +85,7 @@ class SQLiteDatabase {
       )`,
       
       `CREATE TABLE IF NOT EXISTS books (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         file_path TEXT NOT NULL,
         category TEXT,
@@ -92,13 +93,78 @@ class SQLiteDatabase {
         size INTEGER,
         status TEXT DEFAULT 'pending',
         progress INTEGER DEFAULT 0,
+        processed BOOLEAN DEFAULT 0,
+        processing_error TEXT,
+        category_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        keywords TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS generated_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id INTEGER,
+        category_id INTEGER,
+        type TEXT,
+        content TEXT,
+        tags TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (book_id) REFERENCES books(id),
+        FOREIGN KEY (category_id) REFERENCES categories(id)
       )`
     ];
 
     for (const table of tables) {
       this.db.exec(table);
+    }
+
+    // Try to add columns if they don't exist (Migration logic)
+    const migrations = [
+      "ALTER TABLE books ADD COLUMN processed BOOLEAN DEFAULT 0",
+      "ALTER TABLE books ADD COLUMN processing_error TEXT",
+      "ALTER TABLE books ADD COLUMN category_id INTEGER",
+      "ALTER TABLE deployment_tokens ADD COLUMN is_active BOOLEAN DEFAULT 1",
+      "ALTER TABLE categories ADD COLUMN slug TEXT UNIQUE"
+    ]
+
+    for (const migration of migrations) {
+      try {
+        this.db.exec(migration)
+      } catch (err) {
+        // Ignore error if column already exists
+        if (!err.message.includes('duplicate column name')) {
+             // console.log('Migration note:', err.message)
+        }
+      }
+    }
+
+    // Seed Data
+    try {
+      const tokenCount = this.db.prepare('SELECT COUNT(*) as count FROM deployment_tokens').get();
+      if (tokenCount.count === 0) {
+        this.db.prepare('INSERT INTO deployment_tokens (token, max_uses, expires_at, is_active) VALUES (?, ?, ?, ?)').run(
+          'dev-token', 999, '2030-01-01 00:00:00', 1
+        );
+        console.log('✅ Seeded default deployment token: dev-token');
+      }
+
+      // Seed Categories
+      const catCount = this.db.prepare('SELECT COUNT(*) as count FROM categories').get();
+      if (catCount.count === 0) {
+        this.db.prepare('INSERT INTO categories (id, name, slug, description) VALUES (?, ?, ?, ?)').run(
+          1, 'General', 'general', 'Default category'
+        );
+        console.log('✅ Seeded default category: General');
+      }
+    } catch (err) {
+      console.error('Error seeding data:', err.message);
     }
     
     console.log('✅ Tablas de SQLite inicializadas');
@@ -140,4 +206,4 @@ class SQLiteDatabase {
   }
 }
 
-module.exports = SQLiteDatabase;
+export default SQLiteDatabase

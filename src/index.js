@@ -33,7 +33,13 @@ app.use(helmet())
 app.use(compression())
 app.use(morgan('combined'))
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:4127',
+  origin: [
+    'http://localhost:4123',
+    'http://localhost:4124',
+    'http://localhost:3466',
+    'http://localhost:3467',
+    'http://localhost:5173'
+  ],
   credentials: true
 }))
 

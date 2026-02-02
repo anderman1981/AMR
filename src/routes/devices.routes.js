@@ -1,5 +1,6 @@
 import express from 'express'
 import { query } from '../config/database.js'
+import crypto from 'crypto'
 
 const router = express.Router()
 
@@ -102,7 +103,7 @@ router.post('/:id/heartbeat', async (req, res) => {
     const tasksResult = await query(
       `SELECT id, agent_type, priority, payload 
        FROM tasks 
-       WHERE device_id = $1 AND status = 'pending'
+       WHERE (device_id = $1 OR device_id IS NULL) AND status = 'pending'
        ORDER BY priority DESC, created_at ASC
        LIMIT 10`,
       [deviceId]
@@ -111,12 +112,18 @@ router.post('/:id/heartbeat', async (req, res) => {
     // Marcar tareas como asignadas
     if (tasksResult.rows.length > 0) {
       const taskIds = tasksResult.rows.map(task => task.id)
-      await query(
-        `UPDATE tasks 
-         SET status = 'assigned', updated_at = NOW()
-         WHERE id = ANY($1)`,
-        [taskIds]
-      )
+      
+      // SQLite doesn't support ANY, so we update individually or use a dynamic IN clause
+      // For simplicity and safety with the current wrapper, we'll loop
+      for (const taskId of taskIds) {
+        if (!taskId) continue
+        await query(
+           `UPDATE tasks 
+            SET status = 'assigned', device_id = $1, updated_at = NOW()
+            WHERE id = $2`,
+           [deviceId, taskId]
+        )
+      }
     }
 
     res.json({
