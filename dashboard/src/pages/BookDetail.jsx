@@ -1,12 +1,12 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb } from 'antd'
-import { ArrowLeftOutlined, BookOutlined, FilePdfOutlined, DatabaseOutlined, SyncOutlined } from '@ant-design/icons'
+import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List } from 'antd'
+import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined } from '@ant-design/icons'
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
 
-const { Header, Content, Sider } = Layout
+const { Header, Content } = Layout
 const { Title, Text } = Typography
 
 function BookDetail() {
@@ -14,8 +14,7 @@ function BookDetail() {
     const navigate = useNavigate()
 
     // Fetch book details
-    const { data: books, isLoading: isLoadingBook } = useQuery('books', booksService.getBooks)
-    const book = books?.find(b => b.id.toString() === id.toString())
+    const { data: book, isLoading: isLoadingBook } = useQuery(['book', id], () => booksService.getBook(id), { enabled: !!id })
 
     // Fetch book cards/analysis
     const { data: bookCards, isLoading: isLoadingCards } = useQuery(
@@ -29,7 +28,7 @@ function BookDetail() {
     if (isLoading) {
         return (
             <div style={{ padding: '50px', textAlign: 'center' }}>
-                <SyncOutlined spin style={{ fontSize: '32px', marginBottom: '20px' }} />
+                <SyncOutlined spin style={{ fontSize: '32px', marginBottom: '20px', color: '#1890ff' }} />
                 <Skeleton active />
             </div>
         )
@@ -37,90 +36,144 @@ function BookDetail() {
 
     if (!book) {
         return (
-            <div style={{ padding: '50px' }}>
+            <div style={{ padding: '50px', textAlign: 'center' }}>
                 <Empty description="Libro no encontrado" />
-                <Button onClick={() => navigate('/books')}>Volver a Libros</Button>
+                <Button type="primary" onClick={() => navigate('/books')}>Volver a Libros</Button>
             </div>
         )
     }
 
-    // Build the PDF URL (using the backend static route)
-    const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:4126'}/data/books/${encodeURIComponent(book.name)}`
+    // Build the PDF URL (using the backend static route and the new filename property)
+    const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3467'}/data/books/${encodeURIComponent(book.filename || '')}`
+
+    // Organize data for the 3 sections
+    const summaries = bookCards?.filter(c => c.type === 'summary') || []
+    const extractions = bookCards?.filter(c => c.type === 'key_points' || c.type === 'extractor') || []
+    const phrases = bookCards?.filter(c => c.type === 'quotes' || c.type === 'phrases') || []
+
+    const breadcrumbItems = [
+        { title: 'Libros', onClick: () => navigate('/books'), className: 'cursor-pointer' },
+        { title: book.name }
+    ]
 
     return (
-        <Layout style={{ height: 'calc(100vh - 120px)', background: '#fff' }}>
-            <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', height: 'auto', lineHeight: 'normal', paddingBottom: '10px' }}>
-                <Breadcrumb style={{ margin: '16px 0' }}>
-                    <Breadcrumb.Item href="#" onClick={(e) => { e.preventDefault(); navigate('/books'); }}>Libros</Breadcrumb.Item>
-                    <Breadcrumb.Item>{book.name}</Breadcrumb.Item>
-                </Breadcrumb>
+        <Layout style={{ minHeight: '100%', background: '#f0f2f5' }}>
+            <Header style={{ background: '#fff', padding: '12px 24px', height: 'auto', borderBottom: '1px solid #e8e8e8' }}>
+                <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 8 }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Title level={3} style={{ margin: 0 }}>
-                        <BookOutlined style={{ marginRight: 10 }} />
+                    <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+                        <BookOutlined style={{ marginRight: 12, color: '#1890ff' }} />
                         {book.name}
                     </Title>
                     <Space>
-                        <Tag color="blue">{book.category_id || 'GENERAL'}</Tag>
-                        <Tag color={book.processed ? 'green' : 'orange'}>
-                            {book.processed ? 'PROCESADO' : 'PENDIENTE'}
+                        <Tag color="geekblue" style={{ fontSize: '12px', padding: '2px 10px' }}>{book.category?.toUpperCase() || 'GENERAL'}</Tag>
+                        <Tag color={book.processed ? 'green' : 'gold'} style={{ fontSize: '12px', padding: '2px 10px' }}>
+                            {book.processed ? 'ANALIZADO' : 'PENDIENTE'}
                         </Tag>
                         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/books')}>
-                            Volver
+                            Regresar
                         </Button>
                     </Space>
                 </div>
             </Header>
 
-            <Layout>
-                {/* PDF Viewer Section */}
-                <Content style={{ borderRight: '1px solid #f0f0f0', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ height: '100%', width: '100%' }}>
-                        <iframe
-                            src={pdfUrl}
-                            title="PDF Viewer"
-                            style={{ width: '100%', height: '100%', border: 'none' }}
-                        />
-                    </div>
-                </Content>
+            <Content style={{ padding: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
 
-                {/* Database Analysis Section */}
-                <Sider width="40%" theme="light" style={{ overflowY: 'auto', padding: '24px' }}>
-                    <Title level={4}>
-                        <DatabaseOutlined style={{ marginRight: 10 }} />
-                        Análisis de la Base de Datos
-                    </Title>
-                    <Divider />
+                    {/* 1. PDF Viewer Section */}
+                    <Card
+                        title={<><FileTextOutlined style={{ marginRight: 8 }} /> Vista del Documento</>}
+                        style={{ height: '100%', borderRadius: '8px', overflow: 'hidden' }}
+                        styles={{ body: { padding: 0, height: 'calc(100% - 58px)' } }}
+                    >
+                        {book.filename ? (
+                            <iframe
+                                src={pdfUrl}
+                                title="PDF Viewer"
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                            />
+                        ) : (
+                            <Empty style={{ marginTop: 100 }} description="Ruta de archivo no disponible para visualización" />
+                        )}
+                    </Card>
 
-                    {bookCards && bookCards.length > 0 ? (
-                        bookCards.map((card, idx) => (
-                            <Card
-                                key={idx}
-                                title={<Tag color="blue">{card.type.toUpperCase()}</Tag>}
-                                style={{ marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-                                size="small"
-                            >
-                                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                                    <ReactMarkdown>{card.content}</ReactMarkdown>
-                                </div>
-                                {card.tags && (
+                    {/* 2. Summary Section */}
+                    <Card
+                        title={<><RobotOutlined style={{ marginRight: 8, color: '#52c41a' }} /> Resumen Maestro</>}
+                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
+                    >
+                        {summaries.length > 0 ? (
+                            <div style={{ padding: '5px' }}>
+                                <ReactMarkdown>{summaries[0].content}</ReactMarkdown>
+                                {summaries[0].tags && (
                                     <div style={{ marginTop: 15 }}>
                                         {(() => {
                                             try {
-                                                const tags = typeof card.tags === 'string' ? JSON.parse(card.tags) : card.tags;
+                                                const tags = typeof summaries[0].tags === 'string' ? JSON.parse(summaries[0].tags) : summaries[0].tags;
                                                 return Array.isArray(tags) ? tags.map(t => <Tag key={t} color="cyan" style={{ marginBottom: 5 }}>{t}</Tag>) : null;
                                             } catch (e) { return null; }
                                         })()}
                                     </div>
                                 )}
-                            </Card>
-                        ))
-                    ) : (
-                        <Empty description="No hay análisis generados para este libro aún." />
-                    )}
-                </Sider>
-            </Layout>
+                            </div>
+                        ) : (
+                            <Empty description="No se ha generado un resumen aún" />
+                        )}
+                    </Card>
+
+                    {/* 3. Extractor Section */}
+                    <Card
+                        title={<><BulbOutlined style={{ marginRight: 8, color: '#faad14' }} /> Insights y Claves</>}
+                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
+                    >
+                        {extractions.length > 0 ? (
+                            <List
+                                dataSource={extractions}
+                                renderItem={(item) => (
+                                    <List.Item style={{ padding: '12px 0', borderBottom: '1px dashed #f0f0f0' }}>
+                                        <div style={{ width: '100%' }}>
+                                            <ReactMarkdown>{item.content}</ReactMarkdown>
+                                        </div>
+                                    </List.Item>
+                                )}
+                            />
+                        ) : (
+                            <Empty description="No hay extracciones disponibles" />
+                        )}
+                    </Card>
+
+                    {/* 4. Phrases Section */}
+                    <Card
+                        title={<><MessageOutlined style={{ marginRight: 8, color: '#722ed1' }} /> Citas Memorables</>}
+                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
+                    >
+                        {phrases.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {phrases.map((item, i) => (
+                                    <div
+                                        key={i}
+                                        style={{
+                                            background: '#f9f0ff',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            borderLeft: '4px solid #722ed1',
+                                            fontStyle: 'italic'
+                                        }}
+                                    >
+                                        <ReactMarkdown>{item.content}</ReactMarkdown>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <Empty description="No se han extraído frases aún" />
+                        )}
+                    </Card>
+
+                </div>
+            </Content>
         </Layout>
     )
 }
 
-export default BookDetail 
+export default BookDetail
+

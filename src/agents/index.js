@@ -22,7 +22,7 @@ let DEVICE_TOKEN = null
 // --- HELPER: Call LLM Agent ---
 const callAgentAPI = async (prompt, system = "You are a helpful AI assistant.") => {
   try {
-    const AGENT_API = 'http://localhost:12000/api/chat'; // Defined in SYSTEM_CONSTANTS.md
+    const AGENT_API = 'http://localhost:11434/api/chat'; // Using Ollama directly
     const response = await axios.post(AGENT_API, {
       model: "llama3.2", // Default to a lightweight model
       messages: [

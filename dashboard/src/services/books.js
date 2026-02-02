@@ -5,6 +5,11 @@ export const getBooks = async () => {
   return response.data
 }
 
+export const getBook = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}`)
+  return response.data
+}
+
 export const getBooksConfig = async () => {
   const response = await api.get('/api/books/config')
   return response.data
