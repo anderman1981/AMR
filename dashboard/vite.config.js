@@ -8,7 +8,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.API_URL || 'http://localhost:4126',
+        target: process.env.API_URL || 'http://localhost:3464',
         changeOrigin: true
       }
     }

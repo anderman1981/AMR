@@ -44,7 +44,7 @@ sleep 2
 # Start Dashboard
 echo "🖥️  Starting DEV Dashboard on port $DASHBOARD_PORT..."
 cd dashboard || exit
-PORT=$DASHBOARD_PORT API_URL="http://localhost:$API_PORT" nohup npm run dev > ../logs/dev-dashboard.log 2>&1 &
+PORT=$DASHBOARD_PORT API_URL="http://localhost:3464" nohup npm run dev > ../logs/dev-dashboard.log 2>&1 &
 DASHBOARD_PID=$!
 echo "✅ Dashboard started (PID: $DASHBOARD_PID)"
 
