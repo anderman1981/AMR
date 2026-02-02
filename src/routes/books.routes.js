@@ -50,6 +50,7 @@ router.put('/config', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     // Query books joined with their latest active task info
+    // Use GROUP BY to prevent duplicates when a book has multiple active tasks
     const result = await query(`
       SELECT b.*, 
              t.id as active_task_id, 
@@ -60,6 +61,7 @@ router.get('/', async (req, res) => {
         JSON_EXTRACT(t.payload, '$.book_id') = b.id 
         AND t.status IN ('pending', 'assigned')
       )
+      GROUP BY b.id
       ORDER BY b.id DESC
     `)
     
