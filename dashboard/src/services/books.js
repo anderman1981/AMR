@@ -1,10 +1,10 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3467'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4123'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -53,12 +53,6 @@ export const uploadBook = async (file) => {
 
 export const scanBooks = async () => {
   const response = await api.post('/api/books/scan')
-  return response.data
-}
-
-// Crear tarea de agente
-export const createTask = async (bookId, type) => {
-  const response = await api.post(`/api/books/${bookId}/task`, { type })
   return response.data
 }
 

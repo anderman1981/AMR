@@ -16,7 +16,7 @@ function Books() {
   const { data: books, isLoading, error } = useQuery(
     'books',
     booksService.getBooks,
-    { refetchInterval: 30000 } // Refrescar cada 30 segundos
+    { refetchInterval: 2000 } // Refrescar cada 2000ms
   )
 
   // Query para obtener configuración
@@ -78,21 +78,6 @@ function Books() {
     scanMutation.mutate()
   }
 
-  // Mutation para crear tareas
-  const taskMutation = useMutation(({ id, type }) => booksService.createTask(id, type), {
-    onSuccess: (data, variables) => {
-      message.success(`Tarea '${variables.type}' iniciada para el libro`)
-      queryClient.invalidateQueries('books')
-    },
-    onError: () => {
-      message.error('Error al crear la tarea')
-    }
-  })
-
-  const handleCreateTask = (id, type) => {
-    taskMutation.mutate({ id, type })
-  }
-
   // Columnas para la tabla de libros
   const columns = [
     {
@@ -134,35 +119,6 @@ function Books() {
       dataIndex: 'progress',
       key: 'progress',
       render: (progress) => <Progress percent={progress} size="small" />
-    },
-    {
-      title: 'Acciones',
-      key: 'actions',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            size="small"
-            type="primary"
-            ghost
-            onClick={() => handleCreateTask(record.id, 'reader')}
-            disabled={record.status === 'processing'}
-          >
-            📖 Leer
-          </Button>
-          <Button
-            size="small"
-            onClick={() => handleCreateTask(record.id, 'extractor')}
-          >
-            🧪 Extraer
-          </Button>
-          <Button
-            size="small"
-            onClick={() => handleCreateTask(record.id, 'phrases')}
-          >
-            💬 Frases
-          </Button>
-        </Space>
-      )
     }
   ]
 

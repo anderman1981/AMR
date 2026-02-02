@@ -5,7 +5,8 @@ import {
   BookOutlined, 
   DesktopOutlined, 
   UnorderedListOutlined, 
-  SettingOutlined 
+  SettingOutlined,
+  RobotOutlined 
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 

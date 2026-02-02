@@ -1,79 +1,31 @@
-import React, { useState, useEffect } from 'react'
-import { Card, Row, Col, Statistic, Progress, Typography, Space, Spin } from 'antd'
+import React from 'react'
+import { Card, Row, Col, Statistic, Progress, Typography, Space } from 'antd'
 import { 
   BookOutlined, 
   CheckCircleOutlined, 
   ClockCircleOutlined, 
-  ExclamationCircleOutlined,
-  DatabaseOutlined
+  ExclamationCircleOutlined 
 } from '@ant-design/icons'
-import { getBooks } from '../services/books'
 
 const { Title } = Typography
 
 function Dashboard() {
-  const [stats, setStats] = useState({
-    totalBooks: 0,
-    processedBooks: 0,
-    pendingBooks: 0,
-    processingBooks: 0,
-    activeDevices: 0,
-    completedTasks: 0,
-    systemHealth: 0
-  })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch books data
-        const booksResponse = await getBooks()
-        const books = Array.isArray(booksResponse) ? booksResponse : booksResponse.data || []
-        
-        // Calculate book statistics
-        const totalBooks = books.length
-        const processedBooks = books.filter(book => book.status === 'processed').length
-        const processingBooks = books.filter(book => book.status === 'processing').length
-        const pendingBooks = books.filter(book => book.status === 'pending').length
-        
-        // For now, simulate devices and tasks data
-        // TODO: Implement real API endpoints for devices and tasks
-        const activeDevices = 0 // Will be updated when devices API is ready
-        const completedTasks = 0 // Will be updated when tasks API is ready
-        const systemHealth = 95 // Default health score
-        
-        setStats({
-          totalBooks,
-          processedBooks,
-          pendingBooks,
-          processingBooks,
-          activeDevices,
-          completedTasks,
-          systemHealth
-        })
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
+  // Datos de ejemplo - en producción vendrían de la API
+  const stats = {
+    totalBooks: 620,
+    processedBooks: 450,
+    pendingBooks: 120,
+    processingBooks: 50,
+    activeDevices: 25,
+    completedTasks: 1250,
+    systemHealth: 95
+  }
 
   return (
     <div>
       <Title level={2}>🎯 AMROIS Dashboard</Title>
       
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <Spin size="large" />
-          <div style={{ marginTop: '10px' }}>Cargando datos del sistema...</div>
-        </div>
-      ) : (
-        <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]}>
         {/* Estadísticas de Libros */}
         <Col xs={24} sm={12} md={6}>
           <Card>
@@ -131,7 +83,7 @@ function Dashboard() {
                   </span>
                 </div>
                 <Progress 
-                  percent={stats.totalBooks > 0 ? Math.round((stats.processedBooks / stats.totalBooks) * 100) : 0} 
+                  percent={Math.round((stats.processedBooks / stats.totalBooks) * 100)} 
                   status="active"
                   strokeColor="#52c41a"
                 />
@@ -181,7 +133,6 @@ function Dashboard() {
           </Card>
         </Col>
       </Row>
-      )}
     </div>
   )
 }

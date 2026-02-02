@@ -145,7 +145,7 @@ const processTask = async (task, headers) => {
     }
 
     const { book_id, action } = payload 
-
+    
     try {
         if (action === 'reader') {
             result = await runReaderAgent(task, book_id)
