@@ -5,6 +5,7 @@ import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Books from './pages/Books'
+import BookDetail from './pages/BookDetail'
 import Agents from './pages/Agents'
 import Devices from './pages/Devices'
 import Tasks from './pages/Tasks'
@@ -22,6 +23,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/books" element={<Books />} />
+            <Route path="/books/:id" element={<BookDetail />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/devices" element={<Devices />} />
             <Route path="/tasks" element={<Tasks />} />

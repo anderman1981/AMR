@@ -8,28 +8,30 @@ const router = express.Router()
  * @desc    Listar todos los agentes
  * @access  Private (admin)
  */
+/**
+ * @route   GET /api/agents
+ * @desc    List all agents (devices) with real-time stats
+ * @access  Private (admin)
+ */
 router.get('/', async (req, res) => {
   try {
-    const { status, limit = 50, offset = 0 } = req.query
+    const { status } = req.query
 
     let queryText = `
-      SELECT agent_name, COUNT(*) as total_tasks,
-             COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
-             AVG(execution_time) as avg_execution_time,
-             COUNT(CASE WHEN success = true THEN 1 END) as successful_tasks,
-             MAX(created_at) as last_activity
-      FROM agent_performance
+      SELECT id, name, department, status, 
+             cpu_usage as cpuUsage, 
+             memory_usage as memoryUsage, 
+             last_heartbeat as lastHeartbeat
+      FROM devices
     `
     
     const queryParams = []
-    const conditions = []
-
     if (status) {
-      conditions.push(`status = $${queryParams.length + 1}`)
+      queryText += ' WHERE status = $1'
       queryParams.push(status)
     }
 
-    queryText += ` GROUP BY agent_name ORDER BY last_activity DESC`
+    queryText += ' ORDER BY last_heartbeat DESC'
 
     const result = await query(queryText, queryParams)
 
@@ -37,7 +39,7 @@ router.get('/', async (req, res) => {
       success: true,
       data: {
         agents: result.rows,
-        total: result.rows.length
+        total: result.rowCount
       }
     })
 
@@ -68,11 +70,10 @@ router.get('/:name/status', async (req, res) => {
         COUNT(CASE WHEN success = true THEN 1 END) as successful_tasks,
         AVG(execution_time) as avg_execution_time,
         MAX(created_at) as last_activity,
-        COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as tasks_last_24h,
-        COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as tasks_last_7d
+        COUNT(CASE WHEN created_at > datetime('now', '-1 day') THEN 1 END) as tasks_last_24h,
+        COUNT(CASE WHEN created_at > datetime('now', '-7 days') THEN 1 END) as tasks_last_7d
       FROM agent_performance
       WHERE agent_name = $1
-      GROUP BY agent_name
     `, [name])
 
     // Obtener tareas recientes
@@ -238,6 +239,65 @@ router.post('/:name/train', async (req, res) => {
 })
 
 /**
+ * @route   GET /api/agents/stats
+ * @desc    Obtener estadísticas en tiempo real por categoría
+ * @access  Private (admin)
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    // 1. Contar agentes por tipo de tarea activa
+    const statsResult = await query(`
+      SELECT 
+        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'reader' AND status = 'assigned' THEN 1 END) as reading,
+        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'extractor' AND status = 'assigned' THEN 1 END) as extracting,
+        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'phrases' AND status = 'assigned' THEN 1 END) as creating_cards,
+        COUNT(CASE WHEN status = 'assigned' THEN 1 END) as total_active,
+        COUNT(*) as total_tasks
+      FROM tasks
+      WHERE status != 'completed' AND status != 'failed'
+    `)
+
+    // 2. Obtener uso de recursos desde dispositivos
+    const deviceStats = await query(`
+        SELECT 
+            AVG(cpu_usage) as avg_cpu,
+            AVG(memory_usage) as avg_mem,
+            COUNT(CASE WHEN status = 'online' THEN 1 END) as online_count
+        FROM devices
+    `)
+
+    const stats = statsResult.rows[0]
+    const devStats = deviceStats.rows[0]
+
+    res.json({
+      success: true,
+      data: {
+        categories: {
+          reading: parseInt(stats.reading) || 0,
+          extracting: parseInt(stats.extracting) || 0,
+          creating_cards: parseInt(stats.creating_cards) || 0
+        },
+        usage: {
+          cpu: Math.round(parseFloat(devStats.avg_cpu)) || 0,
+          memory: Math.round(parseFloat(devStats.avg_mem)) || 0
+        },
+        overall: {
+            active_agents: parseInt(devStats.online_count) || 0,
+            running_tasks: parseInt(stats.total_active) || 0
+        }
+      }
+    })
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas categorizadas:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo estadísticas'
+    })
+  }
+})
+
+/**
  * @route   GET /api/agents/performance
  * @desc    Obtener métricas de rendimiento de todos los agentes
  * @access  Private (admin)
@@ -246,19 +306,19 @@ router.get('/performance', async (req, res) => {
   try {
     const { period = '7d' } = req.query
 
-    let interval
+    let sqliteInterval
     switch (period) {
       case '24h':
-        interval = "INTERVAL '24 hours'"
+        sqliteInterval = "'-24 hours'"
         break
       case '7d':
-        interval = "INTERVAL '7 days'"
+        sqliteInterval = "'-7 days'"
         break
       case '30d':
-        interval = "INTERVAL '30 days'"
+        sqliteInterval = "'-30 days'"
         break
       default:
-        interval = "INTERVAL '7 days'"
+        sqliteInterval = "'-7 days'"
     }
 
     const performanceResult = await query(`
@@ -275,7 +335,7 @@ router.get('/performance', async (req, res) => {
           NULLIF(COUNT(*), 0), 2
         ) as success_rate
       FROM agent_performance
-      WHERE created_at >= NOW() - ${interval}
+      WHERE created_at >= datetime('now', ${sqliteInterval})
       GROUP BY agent_name
       ORDER BY success_rate DESC, total_tasks DESC
     `)
