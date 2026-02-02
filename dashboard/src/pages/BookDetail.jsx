@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage, Tabs } from 'antd'
+import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage, Tabs, Select } from 'antd'
 import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined, FormOutlined, LineChartOutlined } from '@ant-design/icons'
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
@@ -294,12 +294,58 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
-                                            {isLoadingContent ? <Skeleton active /> : (
-                                                <div style={{ whiteSpace: 'pre-wrap' }}>
-                                                    {bookContent?.content || "Cargando contenido del libro..."}
+                                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                            {/* Section Navigator */}
+                                            {bookContent?.content && (
+                                                <div style={{ padding: '0 12px 12px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                                                    <Space>
+                                                        <Text strong>Navegar:</Text>
+                                                        <Select
+                                                            style={{ width: 250 }}
+                                                            placeholder="Seleccionar sección..."
+                                                            onChange={(value) => {
+                                                                const el = document.getElementById(`section-${value}`);
+                                                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                            }}
+                                                            options={(() => {
+                                                                // Simple Heuristic for Sections
+                                                                const lines = bookContent.content.split('\n');
+                                                                const options = [];
+                                                                lines.forEach((line, idx) => {
+                                                                    const trimmed = line.trim();
+                                                                    // Look for typical headers: Uppercase short lines, or "Chapter X", "1. Title"
+                                                                    const isHeader =
+                                                                        (trimmed.length > 3 && trimmed.length < 100) && (
+                                                                            /^(CHAPTER|CAPÍTULO|PART|PARTE|SECCION|SECTION|INTRODUCTION|INTRODUCCIÓN|CONCLUSION|CONCLUSIÓN|INDEX|ÍNDICE|BIBLIOGRAFÍA|BIBLIOGRAPHY)/i.test(trimmed) ||
+                                                                            /^\d+\.\s+[A-Z]/.test(trimmed) || // 1. Title
+                                                                            (trimmed === trimmed.toUpperCase() && trimmed.length > 5 && !trimmed.includes('.')) // ALL CAPS HEADER
+                                                                        );
+
+                                                                    if (isHeader) {
+                                                                        options.push({ value: idx, label: trimmed.substring(0, 40) + (trimmed.length > 40 ? '...' : '') });
+                                                                    }
+                                                                });
+                                                                return options.length > 0 ? options : [{ value: 0, label: 'Inicio' }];
+                                                            })()}
+                                                        />
+                                                    </Space>
                                                 </div>
                                             )}
+
+                                            {/* Scrollable Content */}
+                                            <div style={{ flex: 1, padding: '12px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
+                                                {isLoadingContent ? <Skeleton active /> : (
+                                                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                        {bookContent?.content ? (
+                                                            bookContent.content.split('\n').map((line, idx) => (
+                                                                <div key={idx} id={`section-${idx}`} style={{ minHeight: '1.2em' }}>
+                                                                    {line}
+                                                                </div>
+                                                            ))
+                                                        ) : "Cargando contenido del libro..."}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     ),
                                 },
