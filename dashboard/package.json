@@ -3,32 +3,34 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../scripts/generate-version.js && vite --port 3465",
+    "prod": "node ../scripts/generate-version.js && vite preview --port 3466",
+    "prebuild": "node ../scripts/generate-version.js",
     "build": "vite build",
-    "preview": "vite preview",
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.2.6",
+    "antd": "^5.10.0",
+    "axios": "^1.6.0",
+    "dayjs": "^1.11.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.15.0",
-    "axios": "^1.6.0",
-    "antd": "^5.10.0",
-    "@ant-design/icons": "^5.2.6",
-    "recharts": "^2.8.0",
-    "socket.io-client": "^4.7.2",
     "react-dropzone": "^14.2.3",
+    "react-markdown": "^10.1.0",
     "react-query": "^3.39.3",
-    "dayjs": "^1.11.10"
+    "react-router-dom": "^6.15.0",
+    "recharts": "^2.8.0",
+    "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.1.1",
-    "vite": "^4.5.0",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.4"
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "vite": "^4.5.0"
   }
 }

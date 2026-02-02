@@ -19,61 +19,89 @@ let DEVICE_TOKEN = null
 
 // --- AGENT LOGIC ---
 
+// --- HELPER: Call LLM Agent ---
+const callAgentAPI = async (prompt, system = "You are a helpful AI assistant.") => {
+  try {
+    const AGENT_API = 'http://localhost:11434/api/chat'; // Using Ollama directly
+    const response = await axios.post(AGENT_API, {
+      model: "llama3.2", // Default to a lightweight model
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt }
+      ],
+      stream: false
+    });
+    return response.data.message.content;
+  } catch (error) {
+    console.error(`⚠️ Agent API Error: ${error.message}`);
+    // Fallback if API is down, to avoid crashing the worker
+    return `[System Error] Could not connect to Agent API at 12000. \n${error.message}`;
+  }
+};
+
 // 1. Reader Agent: Categorizes and creates a summary card
 const runReaderAgent = async (task, bookId) => {
   console.log(`📖 Reader Agent executing for Book ID: ${bookId}`)
   
-  // Fetch book to ensure it exists
   try {
       const bookRes = await axios.get(`${API_URL}/api/books`)
       const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
       
       if (!book) throw new Error('Book not found')
 
-      // Mock Reading with Progress Updates
-      console.log('Simulating reading progress...')
-      const steps = [10, 30, 50, 70, 90, 100]
+      // 1. Real Progress Simulation (Fetching content analysis takes time)
+      console.log(`🤖 Fetching content for: ${book.name}`)
+      const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+      const bookContent = contentRes.data.content || "No content available."
+
+      await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 30 })
       
-      for (const progress of steps) {
-        await new Promise(r => setTimeout(r, 800)) // fast simulation
-        try {
-            await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress })
-            console.log(`📖 Reader Progress: ${progress}% for Book ${bookId}`)
-        } catch (e) {
-            console.error('Failed to update progress:', e.message)
-        }
-      }
+      const prompt = `Analyze the following book content from "${book.name}". 
+      Book Content (Snippet): ${bookContent.substring(0, 5000)}
       
-      const KEYWORDS = {
-        business: ['venta', 'negocio', 'marketing', 'dinero', 'rico', 'empresa', 'lider'],
-        psychology: ['mente', 'psico', 'cerebro', 'emocion', 'vida', 'amor', 'autoestima'],
-        biography: ['historia', 'vida', 'biografia', 'memorias'],
-        tech: ['software', 'codigo', 'programacion', 'datos', 'ia', 'inteligencia']
+      1. Provide a COMPREHENSIVE and DETAILED summary (min 300 words). Include the book's core argument, major themes, and conclusion.
+      2. Identify the best single category (Business, Psychology, Biography, Tech, Fiction, Other).
+      3. List 5-7 key hashtags/tags based on actual content.
+      Format: JSON { "summary": "...", "category": "...", "tags": [...] }`;
+
+      console.log(`🤖 Asking LLM to read "${book.name}"...`);
+      const detailsStr = await callAgentAPI(prompt, "You are a Librarian Agent. Output purely JSON.");
+      
+      // Attempt generic JSON parse from LLM
+      let details;
+      try {
+        const jsonMatch = detailsStr.match(/\{[\s\S]*\}/);
+        details = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
+      } catch (e) {
+        details = { summary: detailsStr, category: "General", tags: ["Uncategorized"] };
       }
 
-      let category = 'general'
-      let tags = []
-      const titleLower = book.name.toLowerCase()
-      
-      for (const [cat, kws] of Object.entries(KEYWORDS)) {
-        if (kws.some(kw => titleLower.includes(kw))) {
-          category = cat
-          tags.push(cat)
-          break
-        }
+      await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 60 })
+
+      // Update Book Category in DB
+      try {
+        await axios.put(`${API_URL}/api/books/${bookId}`, {
+          name: book.name,
+          category: details.category || 'General'
+        })
+        console.log(`✅ Updated category to: ${details.category}`)
+      } catch (catErr) {
+        console.error('Failed to update book category:', catErr.message)
       }
 
       // Create Card
-      const summary = `**Analysis by Reader Agent**\n\n**Title**: ${book.name}\n**Category**: ${category.toUpperCase()}\n\nThis book has been scanned. Based on the analysis, it focuses on themes related to ${tags.join(', ') || 'general topics'}.`
+      const summaryContent = `**Analysis by Reader Agent**\n\n**Title**: ${book.name}\n**Category**: ${details.category.toUpperCase()}\n\n${details.summary}`;
       
       await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
         type: 'summary',
         category_id: 1,
-        content: summary,
-        tags: tags
+        content: summaryContent,
+        tags: details.tags || ['general']
       })
+
+      await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
       
-      return { success: true, message: `Book processed and categorized as ${category}` }
+      return { success: true, message: `Book analyzed: ${details.category}` }
   } catch (err) {
       throw new Error(`Failed to run reader agent: ${err.message}`)
   }
@@ -82,21 +110,35 @@ const runReaderAgent = async (task, bookId) => {
 // 2. Extractor Agent: Extracts best parts
 const runExtractorAgent = async (task, bookId) => {
   console.log(`🧪 Extractor Agent executing for Book ID: ${bookId}`)
-  await new Promise(r => setTimeout(r, 5000)) // Simulate heavy work
-  
-  const bestParts = [
-    "Chapter 1: The beginning of awareness.",
-    "Key Insight: Success is not final, failure is not fatal.",
-    "Critical Concept: The loop of habit."
-  ]
   
   try {
+    const bookRes = await axios.get(`${API_URL}/api/books`)
+    const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
+    if (!book) throw new Error('Book not found')
+    
+    const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+    const bookContent = contentRes.data.content || "No content available."
+
+    const prompt = `Extract specific, actionable insights from the book "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 5000)}
+    
+    1. Identify the 3-5 clearest "Golden Nuggets" or core ideas.
+    2. Create a "Task List" to implement these ideas.
+    Format as markdown. Use bullet points for tasks.`;
+    
+    console.log(`🤖 Asking LLM to extract from "${book.name}"...`);
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 50 })
+
+    const insights = await callAgentAPI(prompt, "You are a Researcher Agent. Extract high-value, actionable insights and implementation steps.");
+    
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
       type: 'key_points',
       category_id: 1,
-      content: `**Key Extractions**\n\n${bestParts.map(p => `- ${p}`).join('\n')}`,
+      content: `**Key Extractions**\n\n${insights}`,
       tags: ['extraction', 'highlights']
     })
+    
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
     return { success: true, message: 'Best parts extracted' }
   } catch (err) {
     throw new Error(`Failed to run extractor agent: ${err.message}`)
@@ -106,20 +148,34 @@ const runExtractorAgent = async (task, bookId) => {
 // 3. Phrases Agent: Generates quotes
 const runPhrasesAgent = async (task, bookId) => {
   console.log(`💬 Phrases Agent executing for Book ID: ${bookId}`)
-  await new Promise(r => setTimeout(r, 2000))
-  
-  const quotes = [
-    "\"The only way to do great work is to love what you do.\"",
-    "\"It always seems impossible until it's done.\""
-  ]
   
   try {
+    const bookRes = await axios.get(`${API_URL}/api/books`)
+    const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
+    if (!book) throw new Error('Book not found')
+
+    const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+    const bookContent = contentRes.data.content || "No content available."
+
+    const prompt = `Find 10 powerful, memorable quotes from the book "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 5000)}
+    
+    - Output ONLY the 10 quotes.
+    - Format each as a blockquote (> Quote - Author).`;
+    
+    console.log(`🤖 Asking LLM for quotes from "${book.name}"...`);
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 50 })
+
+    const quotes = await callAgentAPI(prompt, "You are a Curator Agent. Provide exactly 10 shareable quotes.");
+    
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
       type: 'quotes',
       category_id: 1,
-      content: `**Memorable Quotes**\n\n${quotes.join('\n\n')}`,
+      content: `**Memorable Quotes**\n\n${quotes}`,
       tags: ['quotes', 'wisdom']
     })
+
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
     return { success: true, message: 'Quotes generated' }
   } catch (err) {
     throw new Error(`Failed to run phrases agent: ${err.message}`)

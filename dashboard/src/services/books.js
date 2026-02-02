@@ -1,26 +1,12 @@
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4123'
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
-
-// Interceptor para manejar errores
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error)
-    return Promise.reject(error)
-  }
-)
+import api from './api'
 
 export const getBooks = async () => {
   const response = await api.get('/api/books')
+  return response.data
+}
+
+export const getBook = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}`)
   return response.data
 }
 
@@ -63,5 +49,46 @@ export const deleteBook = async (bookId) => {
 
 export const getBookContent = async (bookId) => {
   const response = await api.get(`/api/books/${bookId}/content`)
+  return response.data
+}
+
+export const getBookCards = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}/cards`)
+  return response.data
+}
+
+export const createBookTask = async ({ id, type }) => {
+  const response = await api.post(`/api/books/${id}/task`, { type })
+  return response.data
+}
+
+export const chatWithBook = async (bookId, message) => {
+  const response = await api.post(`/api/books/${bookId}/chat`, { message })
+  return response.data
+}
+
+// Forms
+export const extractBookForms = async (bookId) => {
+  const response = await api.post(`/api/books/${bookId}/extract-forms`)
+  return response.data
+}
+
+export const getBookForms = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}/forms`)
+  return response.data
+}
+
+export const saveFormResponses = async (formId, responses) => {
+  const response = await api.post(`/api/books/forms/${formId}/responses`, { responses })
+  return response.data
+}
+
+export const getFormResponses = async (formId) => {
+  const response = await api.get(`/api/books/forms/${formId}/responses`)
+  return response.data
+}
+
+export const deleteForm = async (formId) => {
+  const response = await api.delete(`/api/books/forms/${formId}`)
   return response.data
 }
