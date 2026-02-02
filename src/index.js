@@ -27,10 +27,17 @@ dotenv.config()
 
 // Inicializar Express
 const app = express()
-const PORT = process.env.PORT || 4126
+const PORT = process.env.PORT || 3467
 
 // Middlewares de seguridad y utilidad
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "frame-ancestors": ["'self'", "http://localhost:3465", "http://localhost:3466", "http://localhost:5173"]
+    }
+  }
+}))
 app.use(compression())
 app.use(morgan('combined'))
 app.use(cors({
@@ -49,8 +56,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Servir archivos estáticos (para uploads, etc.)
+// Servir archivos estáticos (para uploads, libros, etc.)
 app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')))
+app.use('/data/books', express.static(path.join(__dirname, '../data/books')))
 
 // Rutas API
 app.use('/api/devices', devicesRoutes)

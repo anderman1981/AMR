@@ -35,6 +35,8 @@ class SQLiteDatabase {
         device_token TEXT NOT NULL,
         security_score INTEGER DEFAULT 0,
         is_banned BOOLEAN DEFAULT 0,
+        cpu_usage INTEGER DEFAULT 0,
+        memory_usage INTEGER DEFAULT 0,
         last_heartbeat DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -50,6 +52,7 @@ class SQLiteDatabase {
         payload TEXT,
         result TEXT,
         attempts INTEGER DEFAULT 0,
+        progress INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (device_id) REFERENCES devices(id)
@@ -118,6 +121,16 @@ class SQLiteDatabase {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (book_id) REFERENCES books(id),
         FOREIGN KEY (category_id) REFERENCES categories(id)
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS agent_performance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_name TEXT NOT NULL,
+        task_type TEXT NOT NULL,
+        execution_time INTEGER,
+        success BOOLEAN DEFAULT 1,
+        metrics TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`
     ];
 
@@ -130,8 +143,11 @@ class SQLiteDatabase {
       "ALTER TABLE books ADD COLUMN processed BOOLEAN DEFAULT 0",
       "ALTER TABLE books ADD COLUMN processing_error TEXT",
       "ALTER TABLE books ADD COLUMN category_id INTEGER",
+      "ALTER TABLE devices ADD COLUMN cpu_usage INTEGER DEFAULT 0",
+      "ALTER TABLE devices ADD COLUMN memory_usage INTEGER DEFAULT 0",
       "ALTER TABLE deployment_tokens ADD COLUMN is_active BOOLEAN DEFAULT 1",
-      "ALTER TABLE categories ADD COLUMN slug TEXT UNIQUE"
+      "ALTER TABLE categories ADD COLUMN slug TEXT UNIQUE",
+      "ALTER TABLE tasks ADD COLUMN progress INTEGER DEFAULT 0"
     ]
 
     for (const migration of migrations) {

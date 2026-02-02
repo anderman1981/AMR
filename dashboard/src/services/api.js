@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // Determine API URL based on environment or default to local backend
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3467'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: API_URL,
