@@ -16,7 +16,7 @@ function Books() {
   const { data: books, isLoading, error } = useQuery(
     'books',
     booksService.getBooks,
-    { refetchInterval: 30000 } // Refrescar cada 30 segundos
+    { refetchInterval: 2000 } // Refrescar cada 2000ms
   )
 
   // Query para obtener configuración
@@ -125,9 +125,9 @@ function Books() {
   return (
     <div>
       <Title level={2}>📚 Gestión de Libros</Title>
-      
+
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        
+
         {/* Configuración de Ruta Física */}
         <Card title="📁 Configuración de Ruta Física" size="small">
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -136,14 +136,14 @@ function Books() {
               <Text code>{config?.booksPath || booksPath}</Text>
             </div>
             <Space>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<FolderOpenOutlined />}
                 onClick={() => handlePathUpdate('/ruta/nueva')}
               >
                 Cambiar Ruta
               </Button>
-              <Button 
+              <Button
                 icon={<SyncOutlined />}
                 loading={scanMutation.isLoading}
                 onClick={handleScan}

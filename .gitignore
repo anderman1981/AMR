@@ -98,7 +98,3 @@ desktop.ini
 # Test files
 tests/fixtures/output/
 tests/temp/
-
-# Books data (PDFs)
-data/books/
-*.pdf
