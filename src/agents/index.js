@@ -57,11 +57,11 @@ const runReaderAgent = async (task, bookId) => {
       await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 30 })
       
       const prompt = `Analyze the following book content from "${book.name}". 
-      Book Content (Snippet): ${bookContent.substring(0, 3000)}
+      Book Content (Snippet): ${bookContent.substring(0, 5000)}
       
-      1. Provide a concise summary (max 100 words).
+      1. Provide a COMPREHENSIVE and DETAILED summary (min 300 words). Include the book's core argument, major themes, and conclusion.
       2. Identify the best single category (Business, Psychology, Biography, Tech, Fiction, Other).
-      3. List 3 key tags based on actual content.
+      3. List 5-7 key hashtags/tags based on actual content.
       Format: JSON { "summary": "...", "category": "...", "tags": [...] }`;
 
       console.log(`🤖 Asking LLM to read "${book.name}"...`);
@@ -77,6 +77,17 @@ const runReaderAgent = async (task, bookId) => {
       }
 
       await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 60 })
+
+      // Update Book Category in DB
+      try {
+        await axios.put(`${API_URL}/api/books/${bookId}`, {
+          name: book.name,
+          category: details.category || 'General'
+        })
+        console.log(`✅ Updated category to: ${details.category}`)
+      } catch (catErr) {
+        console.error('Failed to update book category:', catErr.message)
+      }
 
       // Create Card
       const summaryContent = `**Analysis by Reader Agent**\n\n**Title**: ${book.name}\n**Category**: ${details.category.toUpperCase()}\n\n${details.summary}`;
@@ -108,12 +119,15 @@ const runExtractorAgent = async (task, bookId) => {
     const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
     const bookContent = contentRes.data.content || "No content available."
 
-    const prompt = `Extract 3 "Golden Nuggets" or key insights from the following book content of "${book.name}".
-    Book Content (Snippet): ${bookContent.substring(0, 4000)}
-    Format as a markdown list.`;
+    const prompt = `Extract specific, actionable insights from the book "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 5000)}
+    
+    1. Identify the 3-5 clearest "Golden Nuggets" or core ideas.
+    2. Create a "Task List" to implement these ideas.
+    Format as markdown. Use bullet points for tasks.`;
     
     console.log(`🤖 Asking LLM to extract from "${book.name}"...`);
-    const insights = await callAgentAPI(prompt, "You are a Researcher Agent. Extract high-value insights.");
+    const insights = await callAgentAPI(prompt, "You are a Researcher Agent. Extract high-value, actionable insights and implementation steps.");
     
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
       type: 'key_points',
@@ -139,11 +153,14 @@ const runPhrasesAgent = async (task, bookId) => {
     const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
     const bookContent = contentRes.data.content || "No content available."
 
-    const prompt = `Find or generate 3 representative quotes from the following book content of "${book.name}".
-    Book Content (Snippet): ${bookContent.substring(0, 4000)}`;
+    const prompt = `Find 7 powerful, memorable quotes from the book "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 5000)}
+    
+    - Output ONLY the 7 quotes.
+    - Format each as a blockquote (> Quote - Author).`;
     
     console.log(`🤖 Asking LLM for quotes from "${book.name}"...`);
-    const quotes = await callAgentAPI(prompt, "You are a potentially creative agent. Provide quotes.");
+    const quotes = await callAgentAPI(prompt, "You are a Curator Agent. Provide exactly 7 shareable quotes.");
     
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
       type: 'quotes',

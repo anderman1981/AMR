@@ -34,6 +34,28 @@ function BookDetail() {
 
     const isLoading = isLoadingBook || isLoadingCards
 
+    // Fetch book content (for the new tab)
+    const { data: bookContent, isLoading: isLoadingContent } = useQuery(
+        ['book-content', id],
+        () => booksService.getBookContent(id),
+        {
+            enabled: !!id,
+            staleTime: Infinity // Content doesn't change often
+        }
+    )
+
+    // Agent Trigger Handler
+    const handleTriggerAgent = async (type) => {
+        try {
+            antdMessage.loading({ content: 'Iniciando agente...', key: 'agent-task' })
+            await booksService.createBookTask({ id, type })
+            antdMessage.success({ content: 'Agente iniciado. Recarga en unos minutos.', key: 'agent-task' })
+        } catch (error) {
+            console.error(error)
+            antdMessage.error({ content: 'Error al iniciar agente', key: 'agent-task' })
+        }
+    }
+
     // Auto-scroll chat to bottom
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -164,21 +186,36 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                            <Title level={5}>Resumen Generado por IA</Title>
-                                            {book?.summary ? (
-                                                <ReactMarkdown>{book.summary}</ReactMarkdown>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Análisis Estructural</Title>
+                                                <Button
+                                                    size="small"
+                                                    type="primary"
+                                                    icon={<RobotOutlined />}
+                                                    onClick={() => handleTriggerAgent('reader')}
+                                                >
+                                                    Generar Análisis
+                                                </Button>
+                                            </div>
+
+                                            {summaries.length > 0 ? (
+                                                summaries.map((card, idx) => (
+                                                    <div key={idx}>
+                                                        <ReactMarkdown>{card.content}</ReactMarkdown>
+                                                        <Divider />
+                                                        <Space direction="vertical" size="small">
+                                                            <Text strong>Categoría:</Text>
+                                                            <Tag color="blue">{book?.category || 'General'}</Tag>
+                                                            <Text strong>Estado:</Text>
+                                                            <Tag color={book?.processed ? 'green' : 'orange'}>
+                                                                {book?.processed ? 'Completado' : 'Pendiente'}
+                                                            </Tag>
+                                                        </Space>
+                                                    </div>
+                                                ))
                                             ) : (
-                                                <Empty description="No hay resumen disponible" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                                <Empty description="No hay análisis disponible. Genera uno con el Agente." />
                                             )}
-                                            <Divider />
-                                            <Space direction="vertical" size="small">
-                                                <Text strong>Categoría:</Text>
-                                                <Tag color="blue">{book?.category || 'Sin categoría'}</Tag>
-                                                <Text strong>Estado:</Text>
-                                                <Tag color={book?.processed ? 'green' : 'orange'}>
-                                                    {book?.processed ? 'Procesado' : 'Pendiente'}
-                                                </Tag>
-                                            </Space>
                                         </div>
                                     ),
                                 },
@@ -192,18 +229,25 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                            <Title level={5}>Extracciones Clave</Title>
-                                            {book?.insights && book.insights.length > 0 ? (
-                                                <List
-                                                    dataSource={book.insights}
-                                                    renderItem={(insight, index) => (
-                                                        <List.Item key={index}>
-                                                            <ReactMarkdown>{insight}</ReactMarkdown>
-                                                        </List.Item>
-                                                    )}
-                                                />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Insights & Tareas</Title>
+                                                <Button
+                                                    size="small"
+                                                    icon={<RobotOutlined />}
+                                                    onClick={() => handleTriggerAgent('extractor')}
+                                                >
+                                                    Extraer Insights
+                                                </Button>
+                                            </div>
+
+                                            {extractions.length > 0 ? (
+                                                extractions.map((card, idx) => (
+                                                    <Card key={idx} type="inner" style={{ marginBottom: 10 }}>
+                                                        <ReactMarkdown>{card.content}</ReactMarkdown>
+                                                    </Card>
+                                                ))
                                             ) : (
-                                                <Empty description="No hay insights disponibles" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                                <Empty description="No hay insights extraídos." />
                                             )}
                                         </div>
                                     ),
@@ -218,20 +262,25 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                            <Title level={5}>Citas Memorables</Title>
-                                            {book?.quotes && book.quotes.length > 0 ? (
-                                                <List
-                                                    dataSource={book.quotes}
-                                                    renderItem={(quote, index) => (
-                                                        <List.Item key={index}>
-                                                            <blockquote style={{ borderLeft: '3px solid #1890ff', paddingLeft: '12px', fontStyle: 'italic' }}>
-                                                                {quote}
-                                                            </blockquote>
-                                                        </List.Item>
-                                                    )}
-                                                />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Citas Semanales</Title>
+                                                <Button
+                                                    size="small"
+                                                    icon={<RobotOutlined />}
+                                                    onClick={() => handleTriggerAgent('phrases')}
+                                                >
+                                                    Nuevas Citas
+                                                </Button>
+                                            </div>
+
+                                            {phrases.length > 0 ? (
+                                                phrases.map((card, idx) => (
+                                                    <div key={idx}>
+                                                        <ReactMarkdown>{card.content}</ReactMarkdown>
+                                                    </div>
+                                                ))
                                             ) : (
-                                                <Empty description="No hay citas disponibles" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                                <Empty description="No hay citas generadas." />
                                             )}
                                         </div>
                                     ),
@@ -240,8 +289,26 @@ function BookDetail() {
                                     key: '4',
                                     label: (
                                         <span>
+                                            <DatabaseOutlined />
+                                            Contenido
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
+                                            {isLoadingContent ? <Skeleton active /> : (
+                                                <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                    {bookContent?.content || "Cargando contenido del libro..."}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: '5',
+                                    label: (
+                                        <span>
                                             <MessageOutlined />
-                                            Chat
+                                            Coach
                                         </span>
                                     ),
                                     children: (
@@ -260,10 +327,10 @@ function BookDetail() {
                                                 }}
                                             >
                                                 {chatMessages.length === 0 ? (
-                                                    <Empty
-                                                        description="Hazme una pregunta sobre el libro"
-                                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                                    />
+                                                    <div style={{ textAlign: 'center', marginTop: '20px', color: '#888' }}>
+                                                        <RobotOutlined style={{ fontSize: '24px', marginBottom: '10px' }} />
+                                                        <p>Soy tu Coach Literario. Pregúntame cómo aplicar este libro.</p>
+                                                    </div>
                                                 ) : (
                                                     <Space direction="vertical" style={{ width: '100%' }} size="middle">
                                                         {chatMessages.map((msg, idx) => (
@@ -280,8 +347,9 @@ function BookDetail() {
                                                                         maxWidth: '80%',
                                                                         padding: '8px 12px',
                                                                         borderRadius: '8px',
-                                                                        backgroundColor: msg.role === 'user' ? '#1890ff' : '#f0f0f0',
-                                                                        color: msg.role === 'user' ? 'white' : 'black'
+                                                                        backgroundColor: msg.role === 'user' ? '#1890ff' : '#f9f9f9',
+                                                                        color: msg.role === 'user' ? 'white' : 'black',
+                                                                        border: msg.role === 'user' ? 'none' : '1px solid #eee'
                                                                     }}
                                                                 >
                                                                     <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -294,9 +362,9 @@ function BookDetail() {
                                                                     display: 'inline-block',
                                                                     padding: '8px 12px',
                                                                     borderRadius: '8px',
-                                                                    backgroundColor: '#f0f0f0'
+                                                                    backgroundColor: '#f9f9f9'
                                                                 }}>
-                                                                    <SyncOutlined spin /> Pensando...
+                                                                    <SyncOutlined spin /> Analizando respuesta...
                                                                 </div>
                                                             </div>
                                                         )}
@@ -305,7 +373,7 @@ function BookDetail() {
                                             </div>
                                             <Space.Compact style={{ width: '100%' }}>
                                                 <Input
-                                                    placeholder="Escribe tu pregunta..."
+                                                    placeholder="Pregúntale al Coach..."
                                                     value={chatInput}
                                                     onChange={(e) => setChatInput(e.target.value)}
                                                     onPressEnter={handleSendMessage}
@@ -324,7 +392,7 @@ function BookDetail() {
                                     ),
                                 },
                                 {
-                                    key: '5',
+                                    key: '6',
                                     label: (
                                         <span>
                                             <FormOutlined />
