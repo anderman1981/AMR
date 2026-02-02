@@ -299,7 +299,8 @@ function BookDetail() {
                                             {bookContent?.content && (
                                                 <div style={{ padding: '0 12px 12px 12px', borderBottom: '1px solid #f0f0f0' }}>
                                                     <Space>
-                                                        <Text strong>Navegar:</Text>
+                                                        <ReadOutlined style={{ color: '#1890ff' }} />
+                                                        <Text strong style={{ fontSize: '14px' }}>Navegar:</Text>
                                                         <Select
                                                             style={{ width: 250 }}
                                                             placeholder="Seleccionar sección..."
@@ -336,22 +337,44 @@ function BookDetail() {
                                             <div style={{
                                                 flex: 1,
                                                 overflowY: 'auto',
-                                                padding: '12px',
-                                                fontFamily: 'monospace',
-                                                fontSize: '12px',
-                                                border: '1px solid #f0f0f0',
-                                                borderRadius: '4px',
-                                                minHeight: 0 // Crucial for flex item scrolling
+                                                padding: '24px 32px',
+                                                backgroundColor: '#fff',
+                                                minHeight: 0
                                             }}>
-                                                {isLoadingContent ? <Skeleton active /> : (
-                                                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                {isLoadingContent ? (
+                                                    <div style={{ padding: '20px' }}><Skeleton active paragraph={{ rows: 10 }} /></div>
+                                                ) : (
+                                                    <div style={{
+                                                        whiteSpace: 'pre-wrap',
+                                                        fontFamily: "'Georgia', 'Times New Roman', serif",
+                                                        fontSize: '16px',
+                                                        lineHeight: '1.8',
+                                                        color: '#2d3436',
+                                                        maxWidth: '900px',
+                                                        margin: '0 auto'
+                                                    }}>
                                                         {bookContent?.content ? (
-                                                            bookContent.content.split('\n').map((line, idx) => (
-                                                                <div key={idx} id={`section-${idx}`} style={{ minHeight: '1.2em' }}>
-                                                                    {line}
-                                                                </div>
-                                                            ))
-                                                        ) : "Cargando contenido del libro..."}
+                                                            bookContent.content.split('\n').map((line, idx) => {
+                                                                // Apply simple highlighting to potential headers visually
+                                                                const isHeader = line.trim().length > 0 && line.trim().length < 100 && line.trim() === line.trim().toUpperCase();
+                                                                return (
+                                                                    <div
+                                                                        key={idx}
+                                                                        id={`section-${idx}`}
+                                                                        style={{
+                                                                            minHeight: '1.2em',
+                                                                            marginBottom: isHeader ? '1em' : '0',
+                                                                            fontWeight: isHeader ? 'bold' : 'normal',
+                                                                            marginTop: isHeader ? '2em' : '0'
+                                                                        }}
+                                                                    >
+                                                                        {line}
+                                                                    </div>
+                                                                )
+                                                            })
+                                                        ) : (
+                                                            <Empty description="No se encontró contenido de texto para este libro." />
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
