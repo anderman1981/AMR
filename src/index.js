@@ -36,6 +36,7 @@ app.use(cors({
   origin: [
     'http://localhost:4123',
     'http://localhost:4124',
+    'http://localhost:3465',
     'http://localhost:3466',
     'http://localhost:3467',
     'http://localhost:5173'

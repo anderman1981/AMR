@@ -8,6 +8,7 @@ import {
   SettingOutlined,
   RobotOutlined
 } from '@ant-design/icons'
+import versionInfo from '../version.json'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const { Sider } = Layout
@@ -91,11 +92,11 @@ function Sidebar() {
             <div style={{ marginBottom: '8px', color: 'white', fontWeight: 'bold' }}>System Status (DEV)</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span>Version:</span>
-              <span>v1.0.0</span>
+              <span>v{versionInfo.major}.{versionInfo.minor}.{versionInfo.patch}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span>Branch:</span>
-              <span style={{ color: '#1890ff' }}>dev</span>
+              <span style={{ color: '#1890ff' }}>{versionInfo.branch}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Status:</span>
@@ -105,7 +106,7 @@ function Sidebar() {
         ) : (
           // Production View: Minimal
           <div style={{ textAlign: 'center', color: '#8c8c8c' }}>
-            v1.0.0
+            v{versionInfo.major}.{versionInfo.minor}.{versionInfo.patch}
           </div>
         )}
       </div>

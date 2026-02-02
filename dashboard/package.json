@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3465",
-    "prod": "vite preview --port 3466",
+    "dev": "node ../scripts/generate-version.js && vite --port 3465",
+    "prod": "node ../scripts/generate-version.js && vite preview --port 3466",
+    "prebuild": "node ../scripts/generate-version.js",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
