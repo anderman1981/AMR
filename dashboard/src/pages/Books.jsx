@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Card, Upload, Button, Space, Typography, message, Table, Tag, Progress } from 'antd'
+import { Card, Upload, Button, Space, Typography, message, Table, Tag, Progress, Modal, List } from 'antd'
 import { InboxOutlined, FolderOpenOutlined, SyncOutlined } from '@ant-design/icons'
 import { useDropzone } from 'react-dropzone'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
@@ -10,17 +10,30 @@ const { Dragger } = Upload
 
 function Books() {
   const [booksPath, setBooksPath] = useState('/app/books')
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  
   const queryClient = useQueryClient()
 
   // Query para obtener libros
   const { data: books, isLoading, error } = useQuery(
     'books',
     booksService.getBooks,
-    { refetchInterval: 30000 } // Refrescar cada 30 segundos
+    { refetchInterval: 2000 } // Refrescar cada 2000ms
   )
 
   // Query para obtener configuración
   const { data: config } = useQuery('books-config', booksService.getBooksConfig)
+
+  // Query for selected book cards (new)
+  const { data: bookCards, isLoading: isLoadingCards } = useQuery(
+    ['book-cards', selectedBook?.id],
+    () => booksService.getBookCards(selectedBook?.id),
+    { 
+      enabled: !!selectedBook,
+      staleTime: 0 
+    }
+  )
 
   // Mutation para actualizar ruta de libros
   const updatePathMutation = useMutation(booksService.updateBooksPath, {
@@ -78,6 +91,16 @@ function Books() {
     scanMutation.mutate()
   }
 
+  const handleStatusClick = (book) => {
+    setSelectedBook(book)
+    setIsModalVisible(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false)
+    setSelectedBook(null)
+  }
+
   // Columnas para la tabla de libros
   const columns = [
     {
@@ -108,8 +131,12 @@ function Books() {
       title: 'Estado',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={status === 'processed' ? 'green' : status === 'processing' ? 'orange' : 'default'}>
+      render: (status, record) => (
+        <Tag 
+          color={status === 'processed' ? 'green' : status === 'processing' ? 'orange' : 'default'}
+          style={{ cursor: 'pointer' }}
+          onClick={() => handleStatusClick(record)}
+        >
           {status === 'processed' ? 'Procesado' : status === 'processing' ? 'Procesando' : 'Pendiente'}
         </Tag>
       )
@@ -125,9 +152,9 @@ function Books() {
   return (
     <div>
       <Title level={2}>📚 Gestión de Libros</Title>
-      
+
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        
+
         {/* Configuración de Ruta Física */}
         <Card title="📁 Configuración de Ruta Física" size="small">
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -136,14 +163,14 @@ function Books() {
               <Text code>{config?.booksPath || booksPath}</Text>
             </div>
             <Space>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<FolderOpenOutlined />}
                 onClick={() => handlePathUpdate('/ruta/nueva')}
               >
                 Cambiar Ruta
               </Button>
-              <Button 
+              <Button
                 icon={<SyncOutlined />}
                 loading={scanMutation.isLoading}
                 onClick={handleScan}
@@ -222,6 +249,50 @@ function Books() {
         </Card>
 
       </Space>
+
+      {/* Agent Results Modal */}
+      <Modal
+        title={selectedBook ? `Análisis: ${selectedBook.name}` : 'Detalles de Procesamiento'}
+        open={isModalVisible}
+        onCancel={handleCloseModal}
+        footer={[
+          <Button key="close" onClick={handleCloseModal}>
+            Cerrar
+          </Button>
+        ]}
+        width={700}
+      >
+        {isLoadingCards ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <SyncOutlined spin style={{ fontSize: '24px' }} /> <br/> Cargando análisis...
+          </div>
+        ) : (
+          <List
+            grid={{ gutter: 16, column: 1 }}
+            dataSource={bookCards}
+            renderItem={item => (
+              <List.Item>
+                <Card title={<Tag color="blue">{item.type.toUpperCase()}</Tag>} size="small" style={{ width: '100%' }}>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{item.content}</div>
+                  <div style={{ marginTop: '10px' }}>
+                    {item.tags && (() => {
+                      try {
+                        const parsedTags = typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags;
+                        return Array.isArray(parsedTags) ? parsedTags.map(tag => (
+                          <Tag key={tag} color="cyan">{tag}</Tag>
+                        )) : null;
+                      } catch (e) {
+                        return null;
+                      }
+                    })()}
+                  </div>
+                </Card>
+              </List.Item>
+            )}
+            locale={{ emptyText: 'No hay análisis generados aún. Ejecuta un agente.' }}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

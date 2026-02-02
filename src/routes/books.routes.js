@@ -4,6 +4,7 @@ import multer from 'multer'
 import path from 'path'
 import { promises as fs } from 'fs'
 import { fileURLToPath } from 'url'
+import crypto from 'crypto'
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url)
@@ -61,11 +62,53 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
+
+
+// Get configuration - MUST come before /:id
+router.get('/config', async (req, res) => {
+  try {
+    const configPath = path.join(process.cwd(), '.env')
+    // For now returning current BOOKS_PATH from env or default
+    res.json({
+      booksPath: process.env.BOOKS_PATH || './books', 
+      scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
+    })
+  } catch (error) {
+    console.error('Error fetching config:', error)
+    res.status(500).json({ error: 'Error fetching config' })
+  }
+})
+
+// Update configuration
+router.put('/config', async (req, res) => {
+  try {
+    const { path: newPath, scanInterval } = req.body
+    console.log('Updating config:', { newPath, scanInterval })
+    
+    // For now we just echo back success as we are using env vars primarily
+    
+    res.json({
+      success: true,
+      message: 'Configuration updated (Session only)',
+      booksPath: newPath,
+      scanInterval
+    })
+  } catch (error) {
+    console.error('Error updating config:', error)
+    res.status(500).json({ error: 'Error updating config' })
+  }
+})
+
 // Get all books
 router.get('/', async (req, res) => {
   try {
     const result = await query('SELECT * FROM books ORDER BY id DESC')
-    res.json(result.rows)
+    // Ensure all books have unique keys - generate temporary IDs if null
+    const booksWithKeys = result.rows.map((book, index) => ({
+      ...book,
+      id: book.id || `temp-${index}-${Date.now()}`
+    }))
+    res.json(booksWithKeys)
   } catch (error) {
     console.error('Error fetching books:', error)
     res.status(500).json({ error: 'Error fetching books' })
@@ -86,6 +129,43 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching book:', error)
     res.status(500).json({ error: 'Error fetching book' })
+  }
+})
+
+// Get configuration
+router.get('/config', async (req, res) => {
+  try {
+    const configPath = path.join(process.cwd(), '.env')
+    // In a real app we'd read from DB or .env safely
+    // For now returning the current BOOKS_PATH from env or default
+    res.json({
+      path: process.env.BOOKS_PATH || './books', 
+      scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
+    })
+  } catch (error) {
+    console.error('Error fetching config:', error)
+    res.status(500).json({ error: 'Error fetching config' })
+  }
+})
+
+// Update configuration
+router.put('/config', async (req, res) => {
+  try {
+    const { path: newPath, scanInterval } = req.body
+    console.log('Updating config:', { newPath, scanInterval })
+    
+    // In a real app, update DB or .env file
+    // For now we just echo back success as we are using env vars primarily
+    
+    res.json({
+      success: true,
+      message: 'Configuration updated (Session only)',
+      path: newPath,
+      scanInterval
+    })
+  } catch (error) {
+    console.error('Error updating config:', error)
+    res.status(500).json({ error: 'Error updating config' })
   }
 })
 
@@ -157,9 +237,9 @@ router.post('/scan', async (req, res) => {
         
         // Insert book into database
         const result = await query(
-          `INSERT INTO books (name, file_path, size, format) 
-           VALUES ($1, $2, $3, $4) RETURNING id, name`,
-          [title, file.path, file.size, file.format]
+          `INSERT INTO books (name, file_path, size, format, category, status, progress) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name`,
+          [title, file.path, file.size, file.format, 'General', 'pending', 0]
         )
         
         if (result.rows && result.rows.length > 0) {
@@ -230,6 +310,128 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting book:', error)
     res.status(500).json({ error: 'Error deleting book' })
+  }
+})
+
+// Create a generated card for a book (Agent endpoint)
+router.post('/:id/cards', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { category_id, type, content, tags } = req.body
+    
+    // Verify book exists
+    const bookCheck = await query('SELECT id FROM books WHERE id = $1', [id])
+    if (bookCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+
+    // Insert card
+    const result = await query(
+      'INSERT INTO generated_cards (book_id, category_id, type, content, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [id, category_id, type, content, JSON.stringify(tags || [])]
+    )
+
+    // Update book status to 'processed' if it's a summary card
+    // ALWAYS set status back to 'pending' to re-enable UI buttons
+    if (type === 'summary') {
+      await query("UPDATE books SET processed = 1, status = 'pending', category_id = $1 WHERE id = $2", [category_id, id])
+    } else {
+      await query("UPDATE books SET status = 'pending' WHERE id = $1", [id])
+    }
+    
+    res.status(201).json({ 
+      id: result.rows[0]?.id || result.id, 
+      message: 'Card created successfully' 
+    })
+  } catch (error) {
+    console.error('Error creating card:', error)
+    res.status(500).json({ error: 'Error creating card' })
+  }
+})
+
+// Get cards for a book
+router.get('/:id/cards', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query('SELECT * FROM generated_cards WHERE book_id = $1 ORDER BY created_at DESC', [id])
+    res.json(result.rows)
+  } catch (error) {
+     console.error('Error fetching cards:', error)
+     res.status(500).json({ error: 'Error fetching cards' })
+  }
+})
+
+// Endpoint para crear tareas de agente (Reader, Extractor, Phrases)
+router.post('/:id/task', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { type } = req.body
+
+    if (!['reader', 'extractor', 'phrases'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid task type. Options: reader, extractor, phrases' })
+    }
+
+    // Verify book exists
+    const bookCheck = await query('SELECT id, name FROM books WHERE id = $1', [id])
+    if (bookCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    const book = bookCheck.rows[0]
+
+    // Create payload
+    const payload = {
+      book_id: book.id,
+      book_name: book.name,
+      action: type
+    }
+    
+    // Generic agent type for books
+    const agentType = 'book_agent'
+    const taskId = crypto.randomUUID()
+
+    const result = await query(
+      `INSERT INTO tasks (id, agent_type, payload, status, priority) 
+       VALUES ($1, $2, $3, 'pending', 1) 
+       RETURNING id`,
+      [taskId, agentType, JSON.stringify(payload)]
+    )
+
+    // Set book status to processing to disable UI buttons
+    await query("UPDATE books SET status = 'processing' WHERE id = $1", [id])
+
+    res.status(201).json({
+      success: true,
+      data: {
+        task_id: taskId,
+        status: 'pending'
+      },
+      message: `Task ${type} created for book ${book.name}`
+    })
+
+  } catch (error) {
+    console.error('Error creating task:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Update book progress
+router.put('/:id/progress', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { progress } = req.body
+    
+    // Validate progress
+    const progressVal = parseInt(progress)
+    if (isNaN(progressVal) || progressVal < 0 || progressVal > 100) {
+      return res.status(400).json({ error: 'Invalid progress value (0-100)' })
+    }
+
+    await query('UPDATE books SET progress = $1 WHERE id = $2', [progressVal, id])
+    
+    res.json({ success: true, message: 'Progress updated', progress: progressVal })
+  } catch (error) {
+    console.error('Error updating progress:', error)
+    res.status(500).json({ error: 'Error updating progress' })
   }
 })
 

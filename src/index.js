@@ -13,6 +13,7 @@ import tasksRoutes from './routes/tasks.routes.js'
 import booksRoutes from './routes/books.routes.js'
 import llmRoutes from './routes/llm.routes.js'
 import agentsRoutes from './routes/agents.routes.js'
+import statsRoutes from './routes/stats.routes.js'
 
 // Importar middlewares
 import { getDevice, verifyHMAC, deviceRateLimit } from './middleware/auth.js'
@@ -26,14 +27,21 @@ dotenv.config()
 
 // Inicializar Express
 const app = express()
-const PORT = process.env.PORT || 4123
+const PORT = process.env.PORT || 4126
 
 // Middlewares de seguridad y utilidad
 app.use(helmet())
 app.use(compression())
 app.use(morgan('combined'))
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:4124',
+  origin: [
+    'http://localhost:4123',
+    'http://localhost:4124',
+    'http://localhost:3465',
+    'http://localhost:3466',
+    'http://localhost:3467',
+    'http://localhost:5173'
+  ],
   credentials: true
 }))
 
@@ -50,6 +58,7 @@ app.use('/api/tasks', tasksRoutes)
 app.use('/api/books', booksRoutes)
 app.use('/api/llm', llmRoutes)
 app.use('/api/agents', agentsRoutes)
+app.use('/api/stats', statsRoutes)
 
 // Rutas que requieren autenticación de dispositivo
 app.use('/api/devices', deviceRateLimit())
@@ -78,7 +87,8 @@ app.get('/', (req, res) => {
       tasks: '/api/tasks',
       books: '/api/books',
       llm: '/api/llm',
-      agents: '/api/agents'
+      agents: '/api/agents',
+      stats: '/api/stats'
     }
   })
 })
@@ -107,7 +117,7 @@ app.use((error, req, res, next) => {
 // Iniciar servidor
 const server = app.listen(PORT, () => {
   console.log(`🚀 AMROIS Server iniciado en puerto ${PORT}`)
-  console.log(`📖 Dashboard disponible en: http://localhost:${PORT === 4123 ? 4124 : PORT - 1}`)
+  console.log(`📖 Dashboard disponible en: http://localhost:${PORT === 4126 ? 4127 : PORT - 1}`)
   console.log(`🔗 API disponible en: http://localhost:${PORT}`)
   console.log(`📊 Endpoint de salud: http://localhost:${PORT}/health`)
 })
