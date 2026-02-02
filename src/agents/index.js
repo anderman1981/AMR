@@ -127,6 +127,8 @@ const runExtractorAgent = async (task, bookId) => {
     Format as markdown. Use bullet points for tasks.`;
     
     console.log(`🤖 Asking LLM to extract from "${book.name}"...`);
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 50 })
+
     const insights = await callAgentAPI(prompt, "You are a Researcher Agent. Extract high-value, actionable insights and implementation steps.");
     
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
@@ -135,6 +137,8 @@ const runExtractorAgent = async (task, bookId) => {
       content: `**Key Extractions**\n\n${insights}`,
       tags: ['extraction', 'highlights']
     })
+    
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
     return { success: true, message: 'Best parts extracted' }
   } catch (err) {
     throw new Error(`Failed to run extractor agent: ${err.message}`)
@@ -160,6 +164,8 @@ const runPhrasesAgent = async (task, bookId) => {
     - Format each as a blockquote (> Quote - Author).`;
     
     console.log(`🤖 Asking LLM for quotes from "${book.name}"...`);
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 50 })
+
     const quotes = await callAgentAPI(prompt, "You are a Curator Agent. Provide exactly 7 shareable quotes.");
     
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
@@ -168,6 +174,8 @@ const runPhrasesAgent = async (task, bookId) => {
       content: `**Memorable Quotes**\n\n${quotes}`,
       tags: ['quotes', 'wisdom']
     })
+
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
     return { success: true, message: 'Quotes generated' }
   } catch (err) {
     throw new Error(`Failed to run phrases agent: ${err.message}`)
