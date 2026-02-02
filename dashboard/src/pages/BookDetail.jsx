@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage, Tabs, Select } from 'antd'
-import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined, FormOutlined, LineChartOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined, FormOutlined, LineChartOutlined, ReadOutlined } from '@ant-design/icons'
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
