@@ -19,6 +19,8 @@
     "build": "pkg src/start.js --out-path dist/",
     "docker:build": "docker build -t amrois-system .",
     "docker:run": "docker-compose up -d",
+    "dev:dashboard": "cd dashboard && vite --port 3465",
+    "prod:dashboard": "cd dashboard && vite preview --port 3466",
     "migrate": "node scripts/migrate/init-db.js"
   },
   "keywords": [

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4123'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3467'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -63,5 +63,10 @@ export const deleteBook = async (bookId) => {
 
 export const getBookContent = async (bookId) => {
   const response = await api.get(`/api/books/${bookId}/content`)
+  return response.data
+}
+
+export const getBookCards = async (bookId) => {
+  const response = await api.get(`/api/books/${bookId}/cards`)
   return response.data
 }
