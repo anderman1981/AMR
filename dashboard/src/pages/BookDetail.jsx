@@ -135,7 +135,7 @@ function BookDetail() {
                     >
                         {book?.file_path ? (
                             <iframe
-                                src={`http://localhost:3467${book.file_path}`}
+                                src={`http://localhost:3467/data/books/${book.file_path.split('/').pop()}`}
                                 style={{ width: '100%', height: '100%', border: 'none' }}
                                 title="PDF Viewer"
                             />
