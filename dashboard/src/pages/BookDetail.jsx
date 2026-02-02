@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List } from 'antd'
-import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined } from '@ant-design/icons'
+import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage } from 'antd'
+import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined } from '@ant-design/icons'
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
@@ -12,6 +12,12 @@ const { Title, Text } = Typography
 function BookDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
+
+    // Chat state
+    const [chatMessages, setChatMessages] = useState([])
+    const [chatInput, setChatInput] = useState('')
+    const [isChatLoading, setIsChatLoading] = useState(false)
+    const chatEndRef = useRef(null)
 
     // Fetch book details
     const { data: book, isLoading: isLoadingBook } = useQuery(['book', id], () => booksService.getBook(id), { enabled: !!id })
@@ -24,6 +30,44 @@ function BookDetail() {
     )
 
     const isLoading = isLoadingBook || isLoadingCards
+
+    // Auto-scroll chat to bottom
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [chatMessages])
+
+    // Handle chat message send
+    const handleSendMessage = async () => {
+        if (!chatInput.trim()) return
+
+        const userMessage = chatInput.trim()
+        setChatInput('')
+
+        // Add user message to chat
+        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+        setIsChatLoading(true)
+
+        try {
+            const response = await booksService.chatWithBook(id, userMessage)
+
+            // Add AI response to chat
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: response.message
+            }])
+        } catch (error) {
+            console.error('Chat error:', error)
+            antdMessage.error(error.response?.data?.error || 'Error al procesar el mensaje')
+
+            // Add error message to chat
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: '❌ Lo siento, hubo un error al procesar tu pregunta. Por favor, verifica que Ollama esté corriendo.'
+            }])
+        } finally {
+            setIsChatLoading(false)
+        }
+    }
 
     if (isLoading) {
         return (
@@ -78,7 +122,7 @@ function BookDetail() {
             </Header>
 
             <Content style={{ padding: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
 
                     {/* 1. PDF Viewer Section */}
                     <Card
@@ -167,6 +211,78 @@ function BookDetail() {
                         ) : (
                             <Empty description="No se han extraído frases aún" />
                         )}
+                    </Card>
+
+                    {/* 5. Chat Section */}
+                    <Card
+                        title={<><CommentOutlined style={{ marginRight: 8, color: '#1890ff' }} /> Chat con el Libro</>}
+                        style={{ height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}
+                        styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', padding: '12px', overflow: 'hidden' } }}
+                    >
+                        {/* Messages container */}
+                        <div style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                        }}>
+                            {chatMessages.length === 0 ? (
+                                <Empty
+                                    description="Haz una pregunta sobre el libro"
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    style={{ marginTop: '50px' }}
+                                />
+                            ) : (
+                                chatMessages.map((msg, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={{
+                                            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                            maxWidth: '85%',
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            background: msg.role === 'user' ? '#1890ff' : '#f0f0f0',
+                                            color: msg.role === 'user' ? 'white' : 'black',
+                                            fontSize: '13px',
+                                            lineHeight: '1.4'
+                                        }}
+                                    >
+                                        {msg.role === 'assistant' ? (
+                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                        ) : (
+                                            msg.content
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                            {isChatLoading && (
+                                <div style={{ alignSelf: 'flex-start', color: '#999', fontSize: '12px' }}>
+                                    <SyncOutlined spin /> Pensando...
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
+                        </div>
+
+                        {/* Input area */}
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Input
+                                placeholder="Pregunta sobre el libro..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onPressEnter={handleSendMessage}
+                                disabled={isChatLoading}
+                                style={{ fontSize: '13px' }}
+                            />
+                            <Button
+                                type="primary"
+                                icon={<SendOutlined />}
+                                onClick={handleSendMessage}
+                                loading={isChatLoading}
+                                disabled={!chatInput.trim()}
+                            />
+                        </Space.Compact>
                     </Card>
 
                 </div>

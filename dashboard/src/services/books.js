@@ -61,3 +61,8 @@ export const createBookTask = async ({ id, type }) => {
   const response = await api.post(`/api/books/${id}/task`, { type })
   return response.data
 }
+
+export const chatWithBook = async (bookId, message) => {
+  const response = await api.post(`/api/books/${bookId}/chat`, { message })
+  return response.data
+}

@@ -454,4 +454,123 @@ router.put('/:id/progress', async (req, res) => {
   }
 })
 
+// Chat with book using Ollama
+router.post('/:id/chat', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { message } = req.body
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' })
+    }
+
+    // Get book details
+    const bookResult = await query('SELECT * FROM books WHERE id = $1', [id])
+    if (bookResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    const book = bookResult.rows[0]
+
+    // Get book content
+    let content = book.content
+    if (!content) {
+      try {
+        content = await extractTextFromFile(book.file_path)
+      } catch (err) {
+        console.error('Error extracting book content:', err)
+        content = 'Content not available'
+      }
+    }
+
+    // Get generated cards for additional context
+    const cardsResult = await query(
+      'SELECT type, content FROM generated_cards WHERE book_id = $1 ORDER BY created_at DESC',
+      [id]
+    )
+    const cards = cardsResult.rows
+
+    // Build context from book and cards
+    const summaryCards = cards.filter(c => c.type === 'summary')
+    const extractionCards = cards.filter(c => c.type === 'key_points' || c.type === 'extractor')
+    const phraseCards = cards.filter(c => c.type === 'quotes' || c.type === 'phrases')
+
+    let context = `Book Title: ${book.name}\n`
+    context += `Category: ${book.category || 'General'}\n\n`
+
+    if (summaryCards.length > 0) {
+      context += `Summary:\n${summaryCards[0].content}\n\n`
+    }
+
+    if (extractionCards.length > 0) {
+      context += `Key Points:\n${extractionCards.map(c => c.content).join('\n')}\n\n`
+    }
+
+    if (phraseCards.length > 0) {
+      context += `Notable Quotes:\n${phraseCards.map(c => c.content).join('\n')}\n\n`
+    }
+
+    // Add snippet of actual content (first 3000 chars to avoid token limits)
+    if (content && content !== 'Content not available') {
+      context += `Book Content (excerpt):\n${content.substring(0, 3000)}...\n\n`
+    }
+
+    // Build prompt for Ollama
+    const prompt = `You are a helpful assistant that answers questions about the book "${book.name}".
+
+Context about the book:
+${context}
+
+User question: ${message}
+
+Please provide a helpful, accurate answer based on the book's content and analysis. If the answer cannot be found in the provided context, say so politely.`
+
+    // Call Ollama API
+    const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434'
+    const ollamaModel = process.env.OLLAMA_MODEL || 'llama3'
+
+    const ollamaResponse = await fetch(`${ollamaHost}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: ollamaModel,
+        prompt: prompt,
+        stream: false,
+        options: {
+          temperature: 0.7,
+          num_predict: 500
+        }
+      })
+    })
+
+    if (!ollamaResponse.ok) {
+      throw new Error(`Ollama API error: ${ollamaResponse.statusText}`)
+    }
+
+    const ollamaData = await ollamaResponse.json()
+    const answer = ollamaData.response
+
+    res.json({
+      success: true,
+      message: answer,
+      book: {
+        id: book.id,
+        name: book.name
+      }
+    })
+
+  } catch (error) {
+    console.error('Error in chat endpoint:', error)
+    
+    // Check if Ollama is the issue
+    if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
+      return res.status(503).json({ 
+        error: 'Ollama service is not available. Please ensure Ollama is running.',
+        details: error.message
+      })
+    }
+    
+    res.status(500).json({ error: 'Error processing chat request' })
+  }
+})
+
 export default router
