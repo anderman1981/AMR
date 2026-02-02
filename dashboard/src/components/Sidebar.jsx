@@ -28,6 +28,11 @@ function Sidebar() {
       label: 'Libros'
     },
     {
+      key: '/agents',
+      icon: <RobotOutlined />,
+      label: 'Agentes'
+    },
+    {
       key: '/devices',
       icon: <DesktopOutlined />,
       label: 'Dispositivos'
