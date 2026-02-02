@@ -21,6 +21,9 @@ function BookDetail() {
     const chatEndRef = useRef(null)
     const chatContainerRef = useRef(null)
 
+    // Content Pagination State
+    const [visibleLines, setVisibleLines] = useState(500)
+
 
     // Fetch book details
     const { data: book, isLoading: isLoadingBook } = useQuery(['book', id], () => booksService.getBook(id), { enabled: !!id })
@@ -40,7 +43,8 @@ function BookDetail() {
         () => booksService.getBookContent(id),
         {
             enabled: !!id,
-            staleTime: Infinity // Content doesn't change often
+            staleTime: Infinity, // Content doesn't change often
+            onSuccess: () => setVisibleLines(500) // Reset pagination on new book
         }
     )
 
@@ -147,7 +151,7 @@ function BookDetail() {
             </Header>
 
             <Content style={{ padding: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
 
                     {/* Left Column: PDF Viewer */}
                     <Card
@@ -378,24 +382,40 @@ function BookDetail() {
                                                         margin: '0 auto'
                                                     }}>
                                                         {bookContent?.content ? (
-                                                            bookContent.content.split('\n').map((line, idx) => {
-                                                                // Apply simple highlighting to potential headers visually
-                                                                const isHeader = line.trim().length > 0 && line.trim().length < 100 && line.trim() === line.trim().toUpperCase();
-                                                                return (
-                                                                    <div
-                                                                        key={idx}
-                                                                        id={`section-${idx}`}
-                                                                        style={{
-                                                                            minHeight: '1.2em',
-                                                                            marginBottom: isHeader ? '1em' : '0',
-                                                                            fontWeight: isHeader ? 'bold' : 'normal',
-                                                                            marginTop: isHeader ? '2em' : '0'
-                                                                        }}
-                                                                    >
-                                                                        {line}
+                                                            <>
+                                                                {bookContent.content.split('\n').slice(0, visibleLines).map((line, idx) => {
+                                                                    // Apply simple highlighting to potential headers visually
+                                                                    const isHeader = line.trim().length > 0 && line.trim().length < 100 && line.trim() === line.trim().toUpperCase();
+                                                                    return (
+                                                                        <div
+                                                                            key={idx}
+                                                                            id={`section-${idx}`}
+                                                                            style={{
+                                                                                minHeight: '1.2em',
+                                                                                marginBottom: isHeader ? '1em' : '0',
+                                                                                fontWeight: isHeader ? 'bold' : 'normal',
+                                                                                marginTop: isHeader ? '2em' : '0'
+                                                                            }}
+                                                                        >
+                                                                            {line}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                                {bookContent.content.split('\n').length > visibleLines && (
+                                                                    <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '20px' }}>
+                                                                        <Button 
+                                                                            type="dashed" 
+                                                                            onClick={() => setVisibleLines(prev => prev + 500)}
+                                                                            loading={false}
+                                                                        >
+                                                                            Cargar más contenido...
+                                                                        </Button>
+                                                                        <div style={{ marginTop: '10px', color: '#999', fontSize: '12px' }}>
+                                                                            Mostrando {visibleLines} de {bookContent.content.split('\n').length} líneas
+                                                                        </div>
                                                                     </div>
-                                                                )
-                                                            })
+                                                                )}
+                                                            </>
                                                         ) : (
                                                             <Empty description="No se encontró contenido de texto para este libro." />
                                                         )}
