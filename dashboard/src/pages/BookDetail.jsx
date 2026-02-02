@@ -147,11 +147,12 @@ function BookDetail() {
                     {/* Right Column: Tabs */}
                     <Card
                         style={{ height: '100%', borderRadius: '8px' }}
-                        styles={{ body: { padding: '12px', height: 'calc(100% - 57px)', overflowY: 'auto' } }}
+                        styles={{ body: { padding: 0, height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column' } }}
                     >
                         <Tabs
                             defaultActiveKey="1"
                             type="card"
+                            style={{ height: '100%' }}
                             items={[
                                 {
                                     key: '1',
@@ -162,7 +163,7 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '12px' }}>
+                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
                                             <Title level={5}>Resumen Generado por IA</Title>
                                             {book?.summary ? (
                                                 <ReactMarkdown>{book.summary}</ReactMarkdown>
@@ -190,7 +191,7 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '12px' }}>
+                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
                                             <Title level={5}>Extracciones Clave</Title>
                                             {book?.insights && book.insights.length > 0 ? (
                                                 <List
@@ -216,7 +217,7 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '12px' }}>
+                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
                                             <Title level={5}>Citas Memorables</Title>
                                             {book?.quotes && book.quotes.length > 0 ? (
                                                 <List
@@ -331,7 +332,7 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '0' }}>
+                                        <div style={{ padding: '0', height: '100%' }}>
                                             <BookForms bookId={id} />
                                         </div>
                                     ),
