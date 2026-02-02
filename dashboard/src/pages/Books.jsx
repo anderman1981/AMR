@@ -396,8 +396,8 @@ function Books() {
                   <Divider style={{ margin: '15px 0' }} />
                   <Title level={5}>💡 Insights y Extracciones</Title>
                   <div style={{ padding: '0 10px' }}>
-                    {bookCards.filter(c => c.type === 'key_points').map((card, idx) => (
-                      <div key={idx} style={{ marginBottom: 10 }}>
+                    {bookCards.filter(c => c.type === 'key_points').map((card) => (
+                      <div key={card.id} style={{ marginBottom: 10 }}>
                         <ReactMarkdown>{card.content}</ReactMarkdown>
                       </div>
                     ))}
@@ -410,8 +410,8 @@ function Books() {
                   <Divider style={{ margin: '15px 0' }} />
                   <Title level={5}>💬 Citas Memorables</Title>
                   <div style={{ padding: '15px', background: '#f9f9f9', borderRadius: '8px', borderLeft: '4px solid #1890ff' }}>
-                    {bookCards.filter(c => c.type === 'quotes').map((card, idx) => (
-                      <div key={idx} style={{ marginBottom: 15, fontStyle: 'italic' }}>
+                    {bookCards.filter(c => c.type === 'quotes').map((card) => (
+                      <div key={card.id} style={{ marginBottom: 15, fontStyle: 'italic' }}>
                         <ReactMarkdown>{card.content}</ReactMarkdown>
                       </div>
                     ))}
