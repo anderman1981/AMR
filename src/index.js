@@ -49,8 +49,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Servir archivos estáticos (para uploads, etc.)
+// Servir archivos estáticos (para uploads, libros, etc.)
 app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')))
+app.use('/data/books', express.static(path.join(__dirname, '../data/books')))
 
 // Rutas API
 app.use('/api/devices', devicesRoutes)

@@ -5,70 +5,17 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
+import { extractTextFromFile } from '../utils/extractor.js'
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-async function scanDirectory(dirPath) {
-  const files = []
-  
-  try {
-    console.log('Reading directory:', dirPath)
-    const entries = await fs.readdir(dirPath)
-    console.log('Found entries:', entries.length)
-    
-    for (const entryName of entries) {
-      const fullPath = path.join(dirPath, entryName)
-      const stats = await fs.stat(fullPath)
-      
-      if (stats.isFile()) {
-        const ext = path.extname(entryName).substring(1).toLowerCase()
-        
-        // Debug every file
-        console.log(`File: ${entryName}, Ext: ${ext}, Size: ${stats.size}`)
-        
-        if (['pdf', 'epub', 'mobi', 'txt', 'docx'].includes(ext)) {
-          files.push({
-            name: entryName,
-            path: fullPath,
-            format: ext,
-            size: stats.size
-          })
-          console.log(`✅ Added to list: ${entryName}`)
-        }
-      }
-    }
-    
-    console.log(`Total supported files found: ${files.length}`)
-    return files
-  } catch (error) {
-    console.error('Error escaneando directorio:', error)
-    return []
-  }
-}
-
 const router = express.Router()
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'data/uploads/')
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname)
-  }
-})
-
-const upload = multer({ storage: storage })
-
-
-
-// Get configuration - MUST come before /:id
+// Get configuration
 router.get('/config', async (req, res) => {
   try {
-    const configPath = path.join(process.cwd(), '.env')
-    // For now returning current BOOKS_PATH from env or default
     res.json({
       booksPath: process.env.BOOKS_PATH || './books', 
       scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
@@ -82,15 +29,14 @@ router.get('/config', async (req, res) => {
 // Update configuration
 router.put('/config', async (req, res) => {
   try {
-    const { path: newPath, scanInterval } = req.body
-    console.log('Updating config:', { newPath, scanInterval })
+    const { booksPath, scanInterval } = req.body
+    console.log('Updating config:', { booksPath, scanInterval })
     
     // For now we just echo back success as we are using env vars primarily
-    
     res.json({
       success: true,
       message: 'Configuration updated (Session only)',
-      booksPath: newPath,
+      booksPath,
       scanInterval
     })
   } catch (error) {
@@ -99,19 +45,80 @@ router.put('/config', async (req, res) => {
   }
 })
 
-// Get all books
+// Get all books with real-time sync
 router.get('/', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM books ORDER BY id DESC')
-    // Ensure all books have unique keys - generate temporary IDs if null
-    const booksWithKeys = result.rows.map((book, index) => ({
-      ...book,
-      id: book.id || `temp-${index}-${Date.now()}`
-    }))
-    res.json(booksWithKeys)
+    // Query books joined with their latest active task info
+    const result = await query(`
+      SELECT b.*, 
+             t.id as active_task_id, 
+             t.status as active_task_status, 
+             t.progress as active_task_progress
+      FROM books b
+      LEFT JOIN tasks t ON (
+        JSON_EXTRACT(t.payload, '$.book_id') = b.id 
+        AND t.status IN ('pending', 'assigned')
+      )
+      ORDER BY b.id DESC
+    `)
+    
+    // Process results to ensure status consistency
+    const processedBooks = result.rows.map(book => {
+      let finalStatus = book.status
+      let finalProgress = book.progress
+
+      // Auto-recovery: If book is 'processing' but no active task found, revert to 'pending'
+      if (book.status === 'processing' && !book.active_task_id) {
+        finalStatus = 'pending'
+        // Proactively update DB to fix the state (Async, don't wait)
+        query("UPDATE books SET status = 'pending' WHERE id = $1", [book.id])
+      }
+
+      // Real-time progress: If active task has progress, use it
+      if (book.active_task_id && book.active_task_progress > 0) {
+        finalProgress = book.active_task_progress
+      }
+
+      return {
+        ...book,
+        status: finalStatus,
+        progress: finalProgress
+      }
+    })
+
+    res.json(processedBooks)
   } catch (error) {
     console.error('Error fetching books:', error)
     res.status(500).json({ error: 'Error fetching books' })
+  }
+})
+
+// Get book content (Transcribes if missing)
+router.get('/:id/content', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query('SELECT id, file_path, content FROM books WHERE id = $1', [id])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    
+    const book = result.rows[0]
+    
+    if (book.content) {
+      return res.json({ content: book.content })
+    }
+    
+    // Auto-transcribe if content is null
+    console.log(`📝 Auto-transcribing missing content for book ${id}...`)
+    const text = await extractTextFromFile(book.file_path)
+    
+    await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+    
+    res.json({ content: text })
+  } catch (error) {
+    console.error('Error fetching/transcribing book content:', error)
+    res.status(500).json({ error: 'Error fetching book content' })
   }
 })
 
@@ -132,42 +139,44 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// Get configuration
-router.get('/config', async (req, res) => {
+// Helper function to scan directory
+async function scanDirectory(dirPath) {
+  const files = []
   try {
-    const configPath = path.join(process.cwd(), '.env')
-    // In a real app we'd read from DB or .env safely
-    // For now returning the current BOOKS_PATH from env or default
-    res.json({
-      path: process.env.BOOKS_PATH || './books', 
-      scanInterval: process.env.BOOKS_SCAN_INTERVAL || 3600
-    })
+    const entries = await fs.readdir(dirPath)
+    for (const entryName of entries) {
+      const fullPath = path.join(dirPath, entryName)
+      const stats = await fs.stat(fullPath)
+      if (stats.isFile()) {
+        const ext = path.extname(entryName).substring(1).toLowerCase()
+        if (['pdf', 'epub', 'mobi', 'txt', 'docx'].includes(ext)) {
+          files.push({
+            name: entryName,
+            path: fullPath,
+            format: ext,
+            size: stats.size
+          })
+        }
+      }
+    }
+    return files
   } catch (error) {
-    console.error('Error fetching config:', error)
-    res.status(500).json({ error: 'Error fetching config' })
+    console.error('Error scanning directory:', error)
+    return []
+  }
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'data/uploads/')
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
   }
 })
 
-// Update configuration
-router.put('/config', async (req, res) => {
-  try {
-    const { path: newPath, scanInterval } = req.body
-    console.log('Updating config:', { newPath, scanInterval })
-    
-    // In a real app, update DB or .env file
-    // For now we just echo back success as we are using env vars primarily
-    
-    res.json({
-      success: true,
-      message: 'Configuration updated (Session only)',
-      path: newPath,
-      scanInterval
-    })
-  } catch (error) {
-    console.error('Error updating config:', error)
-    res.status(500).json({ error: 'Error updating config' })
-  }
-})
+const upload = multer({ storage: storage })
 
 // Upload a new book
 router.post('/', upload.single('file'), async (req, res) => {
@@ -176,14 +185,14 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' })
     }
 
-    const { title, author, description, category } = req.body
+    const { name, category } = req.body
     const filePath = req.file.path
-    const fileSize = req.file.size
-    const fileFormat = path.extname(req.file.originalname).substring(1)
+    const size = req.file.size
+    const format = path.extname(req.file.originalname).substring(1)
 
     const result = await query(
-      'INSERT INTO books (title, author, description, category, file_path, file_size, file_format) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title, author, description, category, filePath, fileSize, fileFormat]
+      'INSERT INTO books (name, category, file_path, size, format) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name || req.file.originalname, category, filePath, size, format]
     )
 
     res.status(201).json(result.rows[0])
@@ -235,11 +244,20 @@ router.post('/scan', async (req, res) => {
           continue
         }
         
+        // Extract text proactively
+        let content = null
+        try {
+          console.log(`📝 Extracting text for: ${title}`)
+          content = await extractTextFromFile(file.path)
+        } catch (err) {
+          console.error(`⚠️  Failed to extract text for ${title}:`, err.message)
+        }
+
         // Insert book into database
         const result = await query(
-          `INSERT INTO books (name, file_path, size, format, category, status, progress) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name`,
-          [title, file.path, file.size, file.format, 'General', 'pending', 0]
+          `INSERT INTO books (name, file_path, size, format, category, status, progress, content) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name`,
+          [title, file.path, file.size, file.format, 'General', 'pending', 0, content]
         )
         
         if (result.rows && result.rows.length > 0) {
@@ -277,11 +295,11 @@ router.post('/scan', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { title, author, description, category } = req.body
+    const { name, category } = req.body
     
     const result = await query(
-      'UPDATE books SET title = $1, author = $2, description = $3, category = $4 WHERE id = $5 RETURNING *',
-      [title, author, description, category, id]
+      'UPDATE books SET name = $1, category = $2 WHERE id = $3 RETURNING *',
+      [name, category, id]
     )
     
     if (result.rows.length === 0) {

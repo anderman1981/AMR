@@ -50,12 +50,18 @@ const runReaderAgent = async (task, bookId) => {
       if (!book) throw new Error('Book not found')
 
       // 1. Real Progress Simulation (Fetching content analysis takes time)
-      await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 10 })
+      console.log(`🤖 Fetching content for: ${book.name}`)
+      const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+      const bookContent = contentRes.data.content || "No content available."
+
+      await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 30 })
       
-      const prompt = `Analyze the book title "${book.name}". 
-      1. Provide a concise summary (max 50 words).
+      const prompt = `Analyze the following book content from "${book.name}". 
+      Book Content (Snippet): ${bookContent.substring(0, 3000)}
+      
+      1. Provide a concise summary (max 100 words).
       2. Identify the best single category (Business, Psychology, Biography, Tech, Fiction, Other).
-      3. List 3 key tags.
+      3. List 3 key tags based on actual content.
       Format: JSON { "summary": "...", "category": "...", "tags": [...] }`;
 
       console.log(`🤖 Asking LLM to read "${book.name}"...`);
@@ -99,7 +105,11 @@ const runExtractorAgent = async (task, bookId) => {
     const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
     if (!book) throw new Error('Book not found')
     
-    const prompt = `Extract 3 "Golden Nuggets" or key insights from the book "${book.name}". 
+    const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+    const bookContent = contentRes.data.content || "No content available."
+
+    const prompt = `Extract 3 "Golden Nuggets" or key insights from the following book content of "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 4000)}
     Format as a markdown list.`;
     
     console.log(`🤖 Asking LLM to extract from "${book.name}"...`);
@@ -126,7 +136,11 @@ const runPhrasesAgent = async (task, bookId) => {
     const book = bookRes.data.find(b => b.id.toString() === bookId.toString())
     if (!book) throw new Error('Book not found')
 
-    const prompt = `Generate 3 famous or representative quotes from the book "${book.name}".`;
+    const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
+    const bookContent = contentRes.data.content || "No content available."
+
+    const prompt = `Find or generate 3 representative quotes from the following book content of "${book.name}".
+    Book Content (Snippet): ${bookContent.substring(0, 4000)}`;
     
     console.log(`🤖 Asking LLM for quotes from "${book.name}"...`);
     const quotes = await callAgentAPI(prompt, "You are a potentially creative agent. Provide quotes.");
