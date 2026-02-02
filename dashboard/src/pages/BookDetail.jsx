@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage } from 'antd'
-import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined } from '@ant-design/icons'
+import { Layout, Button, Space, Typography, Card, Tag, Divider, Skeleton, Empty, Breadcrumb, List, Input, message as antdMessage, Tabs } from 'antd'
+import { ArrowLeftOutlined, BookOutlined, DatabaseOutlined, SyncOutlined, FileTextOutlined, RobotOutlined, MessageOutlined, BulbOutlined, SendOutlined, CommentOutlined, FormOutlined, LineChartOutlined } from '@ant-design/icons'
 import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
@@ -19,6 +19,8 @@ function BookDetail() {
     const [chatInput, setChatInput] = useState('')
     const [isChatLoading, setIsChatLoading] = useState(false)
     const chatEndRef = useRef(null)
+    const chatContainerRef = useRef(null)
+
 
     // Fetch book details
     const { data: book, isLoading: isLoadingBook } = useQuery(['book', id], () => booksService.getBook(id), { enabled: !!id })
@@ -123,171 +125,220 @@ function BookDetail() {
             </Header>
 
             <Content style={{ padding: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 0.7fr 0.7fr 0.9fr 0.9fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', height: 'calc(100vh - 200px)' }}>
 
-                    {/* 1. PDF Viewer Section */}
+                    {/* Left Column: PDF Viewer */}
                     <Card
-                        title={<><FileTextOutlined style={{ marginRight: 8 }} /> Vista del Documento</>}
-                        style={{ height: '100%', borderRadius: '8px', overflow: 'hidden' }}
-                        styles={{ body: { padding: 0, height: 'calc(100% - 58px)' } }}
+                        title={<><FileTextOutlined style={{ marginRight: 8, color: '#1890ff' }} /> Vista de Documento</>}
+                        style={{ height: '100%', borderRadius: '8px' }}
+                        styles={{ body: { padding: 0, height: 'calc(100% - 57px)' } }}
                     >
-                        {book.filename ? (
+                        {book?.file_path ? (
                             <iframe
-                                src={pdfUrl}
-                                title="PDF Viewer"
+                                src={`http://localhost:3467${book.file_path}`}
                                 style={{ width: '100%', height: '100%', border: 'none' }}
+                                title="PDF Viewer"
                             />
                         ) : (
-                            <Empty style={{ marginTop: 100 }} description="Ruta de archivo no disponible para visualización" />
+                            <Empty description="No hay archivo disponible" style={{ marginTop: '50px' }} />
                         )}
                     </Card>
 
-                    {/* 2. Summary Section */}
+                    {/* Right Column: Tabs */}
                     <Card
-                        title={<><RobotOutlined style={{ marginRight: 8, color: '#52c41a' }} /> Resumen Maestro</>}
-                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
+                        style={{ height: '100%', borderRadius: '8px' }}
+                        styles={{ body: { padding: '12px', height: 'calc(100% - 57px)', overflowY: 'auto' } }}
                     >
-                        {summaries.length > 0 ? (
-                            <div style={{ padding: '5px' }}>
-                                <ReactMarkdown>{summaries[0].content}</ReactMarkdown>
-                                {summaries[0].tags && (
-                                    <div style={{ marginTop: 15 }}>
-                                        {(() => {
-                                            try {
-                                                const tags = typeof summaries[0].tags === 'string' ? JSON.parse(summaries[0].tags) : summaries[0].tags;
-                                                return Array.isArray(tags) ? tags.map(t => <Tag key={t} color="cyan" style={{ marginBottom: 5 }}>{t}</Tag>) : null;
-                                            } catch (e) { return null; }
-                                        })()}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <Empty description="No se ha generado un resumen aún" />
-                        )}
-                    </Card>
-
-                    {/* 3. Extractor Section */}
-                    <Card
-                        title={<><BulbOutlined style={{ marginRight: 8, color: '#faad14' }} /> Insights y Claves</>}
-                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
-                    >
-                        {extractions.length > 0 ? (
-                            <List
-                                dataSource={extractions}
-                                renderItem={(item) => (
-                                    <List.Item style={{ padding: '12px 0', borderBottom: '1px dashed #f0f0f0' }}>
-                                        <div style={{ width: '100%' }}>
-                                            <ReactMarkdown>{item.content}</ReactMarkdown>
+                        <Tabs
+                            defaultActiveKey="1"
+                            type="card"
+                            items={[
+                                {
+                                    key: '1',
+                                    label: (
+                                        <span>
+                                            <LineChartOutlined />
+                                            Análisis
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ padding: '12px' }}>
+                                            <Title level={5}>Resumen Generado por IA</Title>
+                                            {book?.summary ? (
+                                                <ReactMarkdown>{book.summary}</ReactMarkdown>
+                                            ) : (
+                                                <Empty description="No hay resumen disponible" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                            )}
+                                            <Divider />
+                                            <Space direction="vertical" size="small">
+                                                <Text strong>Categoría:</Text>
+                                                <Tag color="blue">{book?.category || 'Sin categoría'}</Tag>
+                                                <Text strong>Estado:</Text>
+                                                <Tag color={book?.processed ? 'green' : 'orange'}>
+                                                    {book?.processed ? 'Procesado' : 'Pendiente'}
+                                                </Tag>
+                                            </Space>
                                         </div>
-                                    </List.Item>
-                                )}
-                            />
-                        ) : (
-                            <Empty description="No hay extracciones disponibles" />
-                        )}
+                                    ),
+                                },
+                                {
+                                    key: '2',
+                                    label: (
+                                        <span>
+                                            <BulbOutlined />
+                                            Insights
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ padding: '12px' }}>
+                                            <Title level={5}>Extracciones Clave</Title>
+                                            {book?.insights && book.insights.length > 0 ? (
+                                                <List
+                                                    dataSource={book.insights}
+                                                    renderItem={(insight, index) => (
+                                                        <List.Item key={index}>
+                                                            <ReactMarkdown>{insight}</ReactMarkdown>
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <Empty description="No hay insights disponibles" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                            )}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: '3',
+                                    label: (
+                                        <span>
+                                            <CommentOutlined />
+                                            Citas
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ padding: '12px' }}>
+                                            <Title level={5}>Citas Memorables</Title>
+                                            {book?.quotes && book.quotes.length > 0 ? (
+                                                <List
+                                                    dataSource={book.quotes}
+                                                    renderItem={(quote, index) => (
+                                                        <List.Item key={index}>
+                                                            <blockquote style={{ borderLeft: '3px solid #1890ff', paddingLeft: '12px', fontStyle: 'italic' }}>
+                                                                {quote}
+                                                            </blockquote>
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <Empty description="No hay citas disponibles" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                            )}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: '4',
+                                    label: (
+                                        <span>
+                                            <MessageOutlined />
+                                            Chat
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                            <div
+                                                ref={chatContainerRef}
+                                                style={{
+                                                    flex: 1,
+                                                    overflowY: 'auto',
+                                                    padding: '12px',
+                                                    marginBottom: '12px',
+                                                    border: '1px solid #f0f0f0',
+                                                    borderRadius: '4px',
+                                                    minHeight: '300px',
+                                                    maxHeight: '500px'
+                                                }}
+                                            >
+                                                {chatMessages.length === 0 ? (
+                                                    <Empty
+                                                        description="Hazme una pregunta sobre el libro"
+                                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                                    />
+                                                ) : (
+                                                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                                                        {chatMessages.map((msg, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                style={{
+                                                                    textAlign: msg.role === 'user' ? 'right' : 'left',
+                                                                    marginBottom: '8px'
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        display: 'inline-block',
+                                                                        maxWidth: '80%',
+                                                                        padding: '8px 12px',
+                                                                        borderRadius: '8px',
+                                                                        backgroundColor: msg.role === 'user' ? '#1890ff' : '#f0f0f0',
+                                                                        color: msg.role === 'user' ? 'white' : 'black'
+                                                                    }}
+                                                                >
+                                                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {isChatLoading && (
+                                                            <div style={{ textAlign: 'left' }}>
+                                                                <div style={{
+                                                                    display: 'inline-block',
+                                                                    padding: '8px 12px',
+                                                                    borderRadius: '8px',
+                                                                    backgroundColor: '#f0f0f0'
+                                                                }}>
+                                                                    <SyncOutlined spin /> Pensando...
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </Space>
+                                                )}
+                                            </div>
+                                            <Space.Compact style={{ width: '100%' }}>
+                                                <Input
+                                                    placeholder="Escribe tu pregunta..."
+                                                    value={chatInput}
+                                                    onChange={(e) => setChatInput(e.target.value)}
+                                                    onPressEnter={handleSendMessage}
+                                                    disabled={isChatLoading}
+                                                />
+                                                <Button
+                                                    type="primary"
+                                                    icon={<SendOutlined />}
+                                                    onClick={handleSendMessage}
+                                                    loading={isChatLoading}
+                                                >
+                                                    Enviar
+                                                </Button>
+                                            </Space.Compact>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: '5',
+                                    label: (
+                                        <span>
+                                            <FormOutlined />
+                                            Formularios
+                                        </span>
+                                    ),
+                                    children: (
+                                        <div style={{ padding: '0' }}>
+                                            <BookForms bookId={id} />
+                                        </div>
+                                    ),
+                                },
+                            ]}
+                        />
                     </Card>
-
-                    {/* 4. Phrases Section */}
-                    <Card
-                        title={<><MessageOutlined style={{ marginRight: 8, color: '#722ed1' }} /> Citas Memorables</>}
-                        style={{ height: '100%', borderRadius: '8px', overflowY: 'auto' }}
-                    >
-                        {phrases.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {phrases.map((item, i) => (
-                                    <div
-                                        key={i}
-                                        style={{
-                                            background: '#f9f0ff',
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            borderLeft: '4px solid #722ed1',
-                                            fontStyle: 'italic'
-                                        }}
-                                    >
-                                        <ReactMarkdown>{item.content}</ReactMarkdown>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <Empty description="No se han extraído frases aún" />
-                        )}
-                    </Card>
-
-                    {/* 5. Chat Section */}
-                    <Card
-                        title={<><CommentOutlined style={{ marginRight: 8, color: '#1890ff' }} /> Chat con el Libro</>}
-                        style={{ height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}
-                        styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', padding: '12px', overflow: 'hidden' } }}
-                    >
-                        {/* Messages container */}
-                        <div style={{
-                            flex: 1,
-                            overflowY: 'auto',
-                            marginBottom: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px'
-                        }}>
-                            {chatMessages.length === 0 ? (
-                                <Empty
-                                    description="Haz una pregunta sobre el libro"
-                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    style={{ marginTop: '50px' }}
-                                />
-                            ) : (
-                                chatMessages.map((msg, idx) => (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                            maxWidth: '85%',
-                                            padding: '8px 12px',
-                                            borderRadius: '8px',
-                                            background: msg.role === 'user' ? '#1890ff' : '#f0f0f0',
-                                            color: msg.role === 'user' ? 'white' : 'black',
-                                            fontSize: '13px',
-                                            lineHeight: '1.4'
-                                        }}
-                                    >
-                                        {msg.role === 'assistant' ? (
-                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                        ) : (
-                                            msg.content
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                            {isChatLoading && (
-                                <div style={{ alignSelf: 'flex-start', color: '#999', fontSize: '12px' }}>
-                                    <SyncOutlined spin /> Pensando...
-                                </div>
-                            )}
-                            <div ref={chatEndRef} />
-                        </div>
-
-                        {/* Input area */}
-                        <Space.Compact style={{ width: '100%' }}>
-                            <Input
-                                placeholder="Pregunta sobre el libro..."
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                onPressEnter={handleSendMessage}
-                                disabled={isChatLoading}
-                                style={{ fontSize: '13px' }}
-                            />
-                            <Button
-                                type="primary"
-                                icon={<SendOutlined />}
-                                onClick={handleSendMessage}
-                                loading={isChatLoading}
-                                disabled={!chatInput.trim()}
-                            />
-                        </Space.Compact>
-                    </Card>
-
-                    {/* 6. Forms Section */}
-                    <BookForms bookId={id} />
 
                 </div>
             </Content>
@@ -296,4 +347,3 @@ function BookDetail() {
 }
 
 export default BookDetail
-

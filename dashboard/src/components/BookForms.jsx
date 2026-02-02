@@ -10,7 +10,6 @@ function BookForms({ bookId }) {
     const [forms, setForms] = useState([])
     const [loading, setLoading] = useState(false)
     const [extracting, setExtracting] = useState(false)
-    const [formInstances, setFormInstances] = useState({})
 
     // Load forms on mount
     useEffect(() => {
@@ -22,16 +21,6 @@ function BookForms({ bookId }) {
             setLoading(true)
             const data = await booksService.getBookForms(bookId)
             setForms(data.forms || [])
-
-            // Initialize form instances with saved responses
-            const instances = {}
-            data.forms?.forEach(form => {
-                instances[form.id] = Form.useForm()[0]
-                if (form.userResponses) {
-                    instances[form.id].setFieldsValue(form.userResponses)
-                }
-            })
-            setFormInstances(instances)
         } catch (error) {
             console.error('Error loading forms:', error)
             message.error('Error al cargar formularios')
@@ -66,9 +55,8 @@ function BookForms({ bookId }) {
         }
     }
 
-    const handleSaveResponses = async (formId) => {
+    const handleSaveResponses = async (formId, formInstance) => {
         try {
-            const formInstance = formInstances[formId]
             const values = await formInstance.validateFields()
 
             await booksService.saveFormResponses(formId, values)
@@ -174,91 +162,103 @@ function BookForms({ bookId }) {
                 </Empty>
             ) : (
                 <Collapse accordion>
-                    {forms.map(form => {
-                        const progress = calculateProgress(form)
-                        const formInstance = formInstances[form.id]
-
-                        return (
-                            <Panel
-                                key={form.id}
-                                header={
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                        <span>
-                                            {form.title}
-                                            {form.pageNumber && <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
-                                                (Pág. {form.pageNumber})
-                                            </span>}
-                                        </span>
-                                        {progress > 0 && (
-                                            <div style={{ width: '100px', marginLeft: '16px' }}>
-                                                <Progress
-                                                    percent={progress}
-                                                    size="small"
-                                                    status={progress === 100 ? 'success' : 'active'}
-                                                    showInfo={false}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                }
-                                extra={
-                                    <Popconfirm
-                                        title="¿Eliminar este formulario?"
-                                        onConfirm={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteForm(form.id)
-                                        }}
-                                        okText="Sí"
-                                        cancelText="No"
-                                    >
-                                        <DeleteOutlined
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{ color: '#ff4d4f' }}
-                                        />
-                                    </Popconfirm>
-                                }
-                            >
-                                <Form
-                                    form={formInstance}
-                                    layout="vertical"
-                                    initialValues={form.userResponses || {}}
-                                    style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}
-                                >
-                                    {form.questions.map((question, idx) => (
-                                        <Form.Item
-                                            key={question.id}
-                                            name={question.id}
-                                            label={`${idx + 1}. ${question.text}`}
-                                            rules={[{ required: false }]}
-                                        >
-                                            {renderQuestionInput(question)}
-                                        </Form.Item>
-                                    ))}
-
-                                    <Form.Item style={{ marginTop: '16px', marginBottom: 0 }}>
-                                        <Space>
-                                            <Button
-                                                type="primary"
-                                                icon={<SaveOutlined />}
-                                                onClick={() => handleSaveResponses(form.id)}
-                                            >
-                                                Guardar Respuestas
-                                            </Button>
-                                            {form.lastUpdated && (
-                                                <span style={{ fontSize: '12px', color: '#999' }}>
-                                                    <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '4px' }} />
-                                                    Guardado: {new Date(form.lastUpdated).toLocaleString('es-ES')}
-                                                </span>
-                                            )}
-                                        </Space>
-                                    </Form.Item>
-                                </Form>
-                            </Panel>
-                        )
-                    })}
+                    {forms.map(form => (
+                        <FormPanel
+                            key={form.id}
+                            form={form}
+                            onSave={handleSaveResponses}
+                            onDelete={handleDeleteForm}
+                            renderQuestionInput={renderQuestionInput}
+                            calculateProgress={calculateProgress}
+                        />
+                    ))}
                 </Collapse>
             )}
         </Card>
+    )
+}
+
+// Separate component to properly use Form.useForm() hook
+function FormPanel({ form, onSave, onDelete, renderQuestionInput, calculateProgress }) {
+    const [formInstance] = Form.useForm()
+    const progress = calculateProgress(form)
+
+    return (
+        <Panel
+            key={form.id}
+            header={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span>
+                        {form.title}
+                        {form.pageNumber && <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                            (Pág. {form.pageNumber})
+                        </span>}
+                    </span>
+                    {progress > 0 && (
+                        <div style={{ width: '100px', marginLeft: '16px' }}>
+                            <Progress
+                                percent={progress}
+                                size="small"
+                                status={progress === 100 ? 'success' : 'active'}
+                                showInfo={false}
+                            />
+                        </div>
+                    )}
+                </div>
+            }
+            extra={
+                <Popconfirm
+                    title="¿Eliminar este formulario?"
+                    onConfirm={(e) => {
+                        e.stopPropagation()
+                        onDelete(form.id)
+                    }}
+                    okText="Sí"
+                    cancelText="No"
+                >
+                    <DeleteOutlined
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ color: '#ff4d4f' }}
+                    />
+                </Popconfirm>
+            }
+        >
+            <Form
+                form={formInstance}
+                layout="vertical"
+                initialValues={form.userResponses || {}}
+                style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}
+            >
+                {form.questions.map((question, idx) => (
+                    <Form.Item
+                        key={question.id}
+                        name={question.id}
+                        label={`${idx + 1}. ${question.text}`}
+                        rules={[{ required: false }]}
+                    >
+                        {renderQuestionInput(question)}
+                    </Form.Item>
+                ))}
+
+                <Form.Item style={{ marginTop: '16px', marginBottom: 0 }}>
+                    <Space>
+                        <Button
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            onClick={() => onSave(form.id, formInstance)}
+                        >
+                            Guardar Respuestas
+                        </Button>
+                        {form.lastUpdated && (
+                            <span style={{ fontSize: '12px', color: '#999' }}>
+                                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '4px' }} />
+                                Guardado: {new Date(form.lastUpdated).toLocaleString('es-ES')}
+                            </span>
+                        )}
+                    </Space>
+                </Form.Item>
+            </Form>
+        </Panel>
     )
 }
 
