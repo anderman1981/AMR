@@ -90,13 +90,18 @@ router.post('/:id/heartbeat', async (req, res) => {
     const { status, system_info } = req.body
 
     // Actualizar último heartbeat y estado
+    const cpu = system_info?.cpu_usage || 0
+    const memory = system_info?.memory_usage || 0
+
     await query(
       `UPDATE devices 
        SET last_heartbeat = NOW(), 
            status = $1,
+           cpu_usage = $2,
+           memory_usage = $3,
            updated_at = NOW()
-       WHERE id = $2`,
-      [status || 'online', deviceId]
+       WHERE id = $4`,
+      [status || 'online', cpu, memory, deviceId]
     )
 
     // Obtener tareas pendientes para este dispositivo
