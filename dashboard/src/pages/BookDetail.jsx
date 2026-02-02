@@ -332,8 +332,17 @@ function BookDetail() {
                                                 </div>
                                             )}
 
-                                            {/* Scrollable Content */}
-                                            <div style={{ flex: 1, padding: '12px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
+                                            {/* Scrollable Content Container */}
+                                            <div style={{
+                                                flex: 1,
+                                                overflowY: 'auto',
+                                                padding: '12px',
+                                                fontFamily: 'monospace',
+                                                fontSize: '12px',
+                                                border: '1px solid #f0f0f0',
+                                                borderRadius: '4px',
+                                                minHeight: 0 // Crucial for flex item scrolling
+                                            }}>
                                                 {isLoadingContent ? <Skeleton active /> : (
                                                     <div style={{ whiteSpace: 'pre-wrap' }}>
                                                         {bookContent?.content ? (
