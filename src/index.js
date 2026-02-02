@@ -27,7 +27,7 @@ dotenv.config()
 
 // Inicializar Express
 const app = express()
-const PORT = process.env.PORT || 4126
+const PORT = process.env.PORT || 3467
 
 // Middlewares de seguridad y utilidad
 app.use(helmet())
