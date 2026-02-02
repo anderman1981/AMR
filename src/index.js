@@ -13,6 +13,7 @@ import tasksRoutes from './routes/tasks.routes.js'
 import booksRoutes from './routes/books.routes.js'
 import llmRoutes from './routes/llm.routes.js'
 import agentsRoutes from './routes/agents.routes.js'
+import statsRoutes from './routes/stats.routes.js'
 
 // Importar middlewares
 import { getDevice, verifyHMAC, deviceRateLimit } from './middleware/auth.js'
@@ -57,6 +58,7 @@ app.use('/api/tasks', tasksRoutes)
 app.use('/api/books', booksRoutes)
 app.use('/api/llm', llmRoutes)
 app.use('/api/agents', agentsRoutes)
+app.use('/api/stats', statsRoutes)
 
 // Rutas que requieren autenticación de dispositivo
 app.use('/api/devices', deviceRateLimit())
@@ -85,7 +87,8 @@ app.get('/', (req, res) => {
       tasks: '/api/tasks',
       books: '/api/books',
       llm: '/api/llm',
-      agents: '/api/agents'
+      agents: '/api/agents',
+      stats: '/api/stats'
     }
   })
 })
