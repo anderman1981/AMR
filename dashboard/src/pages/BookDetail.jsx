@@ -261,26 +261,50 @@ function BookDetail() {
                                         </span>
                                     ),
                                     children: (
-                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <div style={{ padding: '12px', height: '100%', overflowY: 'auto', paddingRight: '15px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
                                                 <Title level={5} style={{ margin: 0 }}>Citas Semanales</Title>
                                                 <Button
                                                     size="small"
+                                                    type="dashed"
                                                     icon={<RobotOutlined />}
                                                     onClick={() => handleTriggerAgent('phrases')}
                                                 >
-                                                    Nuevas Citas
+                                                    Generar Citas (10)
                                                 </Button>
                                             </div>
 
                                             {phrases.length > 0 ? (
-                                                phrases.map((card, idx) => (
-                                                    <div key={idx}>
-                                                        <ReactMarkdown>{card.content}</ReactMarkdown>
-                                                    </div>
-                                                ))
+                                                <Space direction="vertical" style={{ width: '100%' }}>
+                                                    {phrases.map((card, idx) => (
+                                                        <Card 
+                                                            key={idx} 
+                                                            size="small"
+                                                            hoverable
+                                                            style={{ 
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                                                border: '1px solid #f0f0f0'
+                                                            }}
+                                                        >
+                                                            <div style={{ fontStyle: 'italic', fontFamily: 'Georgia, serif', fontSize: '15px', color: '#444' }}>
+                                                                <ReactMarkdown>{card.content}</ReactMarkdown>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right', marginTop: '10px' }}>
+                                                                <Tag color="cyan">Compartir</Tag>
+                                                            </div>
+                                                        </Card>
+                                                    ))}
+                                                </Space>
                                             ) : (
-                                                <Empty description="No hay citas generadas." />
+                                                 <Empty 
+                                                    image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                                                    description={
+                                                        <span>No hay citas guardadas. <br/>
+                                                        <span style={{ fontSize: '12px', color: '#888' }}>Pídele al agente que extraiga las mejores frases.</span>
+                                                        </span>
+                                                    } 
+                                                />
                                             )}
                                         </div>
                                     ),

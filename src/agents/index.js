@@ -157,16 +157,16 @@ const runPhrasesAgent = async (task, bookId) => {
     const contentRes = await axios.get(`${API_URL}/api/books/${bookId}/content`)
     const bookContent = contentRes.data.content || "No content available."
 
-    const prompt = `Find 7 powerful, memorable quotes from the book "${book.name}".
+    const prompt = `Find 10 powerful, memorable quotes from the book "${book.name}".
     Book Content (Snippet): ${bookContent.substring(0, 5000)}
     
-    - Output ONLY the 7 quotes.
+    - Output ONLY the 10 quotes.
     - Format each as a blockquote (> Quote - Author).`;
     
     console.log(`🤖 Asking LLM for quotes from "${book.name}"...`);
     await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 50 })
 
-    const quotes = await callAgentAPI(prompt, "You are a Curator Agent. Provide exactly 7 shareable quotes.");
+    const quotes = await callAgentAPI(prompt, "You are a Curator Agent. Provide exactly 10 shareable quotes.");
     
     await axios.post(`${API_URL}/api/books/${bookId}/cards`, {
       type: 'quotes',
