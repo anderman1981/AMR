@@ -36,8 +36,9 @@ app.use(cors({
   origin: [
     'http://localhost:4123',
     'http://localhost:4124',
-    'http://localhost:3466',
-    'http://localhost:3467',
+    'http://localhost:3466', // MAIN Dashboard
+    'http://localhost:3465', // DEV Dashboard
+    'http://localhost:3467', // MAIN API
     'http://localhost:5173'
   ],
   credentials: true
@@ -111,9 +112,10 @@ app.use((error, req, res, next) => {
 })
 
 // Iniciar servidor
+// Iniciar servidor
 const server = app.listen(PORT, () => {
   console.log(`🚀 AMROIS Server iniciado en puerto ${PORT}`)
-  console.log(`📖 Dashboard disponible en: http://localhost:${PORT === 4126 ? 4127 : PORT - 1}`)
+  console.log(`📖 Dashboard disponible en: http://localhost:${process.env.DASHBOARD_PORT || (PORT === 4126 ? 4127 : PORT - 1)}`)
   console.log(`🔗 API disponible en: http://localhost:${PORT}`)
   console.log(`📊 Endpoint de salud: http://localhost:${PORT}/health`)
 })
