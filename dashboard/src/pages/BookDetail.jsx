@@ -193,26 +193,20 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                                const allDone = book?.has_summary && book?.has_key_points && book?.has_quotes;
-                                                const isMondayOrTuesday = new Date().getDay() === 1 || new Date().getDay() === 2;
-
-                                                return (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                        <Title level={5} style={{ margin: 0 }}>Análisis Estructural</Title>
-                                                        <Button
-                                                            size="small"
-                                                            type="primary"
-                                                            icon={<RobotOutlined />}
-                                                            disabled={!!book?.active_task_id || (book?.has_summary && allDone)}
-                                                            onClick={() => handleTriggerAgent('reader')}
-                                                        >
-                                                            {book?.active_task_type === 'reader' && book?.active_task_progress !== null 
-                                                                ? `Generar Análisis (${book?.active_task_progress}%)` 
-                                                                : 'Generar Análisis'}
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            })()}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Análisis Estructural</Title>
+                                                <Button
+                                                    size="small"
+                                                    type="primary"
+                                                    icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id || book?.has_summary}
+                                                    onClick={() => handleTriggerAgent('reader')}
+                                                >
+                                                    {book?.active_task_type === 'reader' && book?.active_task_progress !== null 
+                                                        ? `Generar Análisis (${book?.active_task_progress}%)` 
+                                                        : 'Generar Análisis'}
+                                                </Button>
+                                            </div>
 
                                             {latestSummary ? (
                                                 <div key={latestSummary.id || 0}>
@@ -243,24 +237,19 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto' }}>
-                                            {(() => {
-                                                const allDone = book?.has_summary && book?.has_key_points && book?.has_quotes;
-                                                return (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                        <Title level={5} style={{ margin: 0 }}>Insights & Tareas</Title>
-                                                        <Button
-                                                            size="small"
-                                                            icon={<RobotOutlined />}
-                                                            disabled={!!book?.active_task_id || (book?.has_key_points && allDone)}
-                                                            onClick={() => handleTriggerAgent('extractor')}
-                                                        >
-                                                            {book?.active_task_type === 'extractor' && book?.active_task_progress !== null 
-                                                                ? `Extraer Insights (${book?.active_task_progress}%)` 
-                                                                : 'Extraer Insights'}
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            })()}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Insights & Tareas</Title>
+                                                <Button
+                                                    size="small"
+                                                    icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id || book?.has_key_points}
+                                                    onClick={() => handleTriggerAgent('extractor')}
+                                                >
+                                                    {book?.active_task_type === 'extractor' && book?.active_task_progress !== null 
+                                                        ? `Extraer Insights (${book?.active_task_progress}%)` 
+                                                        : 'Extraer Insights'}
+                                                </Button>
+                                            </div>
 
                                             {extractions.length > 0 ? (
                                                 extractions.map((card, idx) => (
@@ -284,26 +273,20 @@ function BookDetail() {
                                     ),
                                     children: (
                                         <div style={{ padding: '12px', height: '100%', overflowY: 'auto', paddingRight: '15px' }}>
-                                            {(() => {
-                                                const allDone = book?.has_summary && book?.has_key_points && book?.has_quotes;
-                                                const isMondayOrTuesday = new Date().getDay() === 1 || new Date().getDay() === 2;
-                                                return (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
-                                                        <Title level={5} style={{ margin: 0 }}>Citas Semanales</Title>
-                                                        <Button
-                                                            size="small"
-                                                            type="dashed"
-                                                            icon={<RobotOutlined />}
-                                                            disabled={!!book?.active_task_id || allDone || (book?.has_quotes && !isMondayOrTuesday)}
-                                                            onClick={() => handleTriggerAgent('phrases')}
-                                                        >
-                                                            {book?.active_task_type === 'phrases' && book?.active_task_progress !== null 
-                                                                ? `Generar Citas (${book?.active_task_progress}%)` 
-                                                                : 'Generar Citas (10)'}
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            })()}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                                <Title level={5} style={{ margin: 0 }}>Citas Semanales</Title>
+                                                <Button
+                                                    size="small"
+                                                    type="dashed"
+                                                    icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id}
+                                                    onClick={() => handleTriggerAgent('phrases')}
+                                                >
+                                                    {book?.active_task_type === 'phrases' && book?.active_task_progress !== null 
+                                                        ? `Generar Citas (${book?.active_task_progress}%)` 
+                                                        : 'Generar Citas (10)'}
+                                                </Button>
+                                            </div>
 
                                             {phrases.length > 0 ? (
                                                 <Space direction="vertical" style={{ width: '100%' }}>
