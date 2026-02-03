@@ -199,6 +199,7 @@ function BookDetail() {
                                                     size="small"
                                                     type="primary"
                                                     icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id || book?.has_content}
                                                     onClick={() => handleTriggerAgent('reader')}
                                                 >
                                                     Generar Análisis
@@ -239,6 +240,7 @@ function BookDetail() {
                                                 <Button
                                                     size="small"
                                                     icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id || book?.has_summary}
                                                     onClick={() => handleTriggerAgent('extractor')}
                                                 >
                                                     Extraer Insights
@@ -273,6 +275,7 @@ function BookDetail() {
                                                     size="small"
                                                     type="dashed"
                                                     icon={<RobotOutlined />}
+                                                    disabled={!!book?.active_task_id || (book?.has_quotes && (new Date().getDay() !== 1 && new Date().getDay() !== 2))}
                                                     onClick={() => handleTriggerAgent('phrases')}
                                                 >
                                                     Generar Citas (10)

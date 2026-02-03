@@ -149,15 +149,25 @@ function Books() {
       dataIndex: 'status',
       key: 'status',
       render: (status, record) => {
-        const isProcessing = status === 'processing' || !!record.active_task_id
-        const displayStatus = isProcessing ? 'Procesando' : status === 'processed' ? 'Procesado' : 'Pendiente'
-        const color = status === 'processed' ? 'green' : isProcessing ? 'orange' : 'default'
+        const isCompleted = record.progress === 100
+        const isProcessing = (status === 'processing' || !!record.active_task_id) && !isCompleted
+        
+        const displayStatus = isCompleted ? 'Procesado' : isProcessing ? 'Procesando' : 'Pendiente'
+        const color = isCompleted ? '#f6ffed' : isProcessing ? 'orange' : 'default'
+        const borderColor = isCompleted ? '#b7eb8f' : undefined
+        const textColor = isCompleted ? '#52c41a' : undefined
 
         return (
           <Space direction="vertical" size={0}>
             <Tag
               color={color}
-              style={{ cursor: 'pointer', margin: 0 }}
+              style={{ 
+                cursor: 'pointer', 
+                margin: 0, 
+                backgroundColor: isCompleted ? color : undefined,
+                borderColor: borderColor,
+                color: textColor
+              }}
               onClick={() => handleStatusClick(record)}
             >
               {displayStatus}
@@ -186,35 +196,41 @@ function Books() {
     {
       title: 'Acciones de Agentes',
       key: 'actions',
-      render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="primary"
-            size="small"
-            icon={<RobotOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'reader')}
-          >
-            Reader
-          </Button>
-          <Button
-            size="small"
-            icon={<SearchOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'extractor')}
-          >
-            Extractor
-          </Button>
-          <Button
-            size="small"
-            icon={<MessageOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'phrases')}
-          >
-            Phrases
-          </Button>
-        </Space>
-      )
+      render: (_, record) => {
+        const isProcessing = record.status === 'processing' || !!record.active_task_id
+        const today = new Date().getDay()
+        const isMondayOrTuesday = today === 1 || today === 2
+
+        return (
+          <Space size="middle">
+            <Button
+              type="primary"
+              size="small"
+              icon={<RobotOutlined />}
+              disabled={isProcessing || record.has_content || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'reader')}
+            >
+              Reader
+            </Button>
+            <Button
+              size="small"
+              icon={<SearchOutlined />}
+              disabled={isProcessing || record.has_summary || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'extractor')}
+            >
+              Extractor
+            </Button>
+            <Button
+              size="small"
+              icon={<MessageOutlined />}
+              disabled={isProcessing || (record.has_quotes && !isMondayOrTuesday) || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'phrases')}
+            >
+              Phrases
+            </Button>
+          </Space>
+        )
+      }
     }
   ]
 

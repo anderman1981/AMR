@@ -55,7 +55,10 @@ router.get('/', async (req, res) => {
       SELECT b.*, 
              t.id as active_task_id, 
              t.status as active_task_status, 
-             t.progress as active_task_progress
+             t.progress as active_task_progress,
+             (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
       FROM books b
       LEFT JOIN tasks t ON (
         JSON_EXTRACT(t.payload, '$.book_id') = b.id 
