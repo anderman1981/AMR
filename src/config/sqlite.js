@@ -242,24 +242,23 @@ class SQLiteDatabase {
 
 // Singleton instance
 const dbInstance = new SQLiteDatabase()
+let connectionPromise = null
 
 export const query = async (sql, params = []) => {
   if (!dbInstance.db) {
-    await dbInstance.connect()
+    if (!connectionPromise) {
+      connectionPromise = dbInstance.connect()
+    }
+    await connectionPromise
   }
   
   try {
     const trimmedSql = sql.trim().toLowerCase()
-    // Simple heuristic: SELECT/PRAGMA usually return rows. INSERT/UPDATE/DELETE return result.
-    // However, stats queries are SELECTs.
-    // better-sqlite3 `all` is safe for SELECTs.
     
     if (trimmedSql.startsWith('select') || trimmedSql.startsWith('pragma') || trimmedSql.startsWith('with')) {
-       // Support basic SELECT
        const rows = dbInstance.all(sql, params)
        return { rows, rowCount: rows.length }
     } else {
-       // INSERT, UPDATE, DELETE
        const result = dbInstance.run(sql, params)
        return { 
          rows: [], 
