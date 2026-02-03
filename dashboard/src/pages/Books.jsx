@@ -200,6 +200,9 @@ function Books() {
         const isProcessing = record.status === 'processing' || !!record.active_task_id
         const today = new Date().getDay()
         const isMondayOrTuesday = today === 1 || today === 2
+        
+        // All agents are "done" only if they all have their generated content
+        const allDone = record.has_summary && record.has_key_points && record.has_quotes
 
         return (
           <Space size="middle">
@@ -207,7 +210,7 @@ function Books() {
               type="primary"
               size="small"
               icon={<RobotOutlined />}
-              disabled={isProcessing || record.has_content || createTaskMutation.isLoading}
+              disabled={isProcessing || (record.has_summary && allDone) || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'reader')}
             >
               {record.active_task_type === 'reader' && record.active_task_progress !== null 
@@ -217,7 +220,7 @@ function Books() {
             <Button
               size="small"
               icon={<SearchOutlined />}
-              disabled={isProcessing || record.has_key_points || createTaskMutation.isLoading}
+              disabled={isProcessing || (record.has_key_points && allDone) || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'extractor')}
             >
               {record.active_task_type === 'extractor' && record.active_task_progress !== null 
@@ -227,7 +230,7 @@ function Books() {
             <Button
               size="small"
               icon={<MessageOutlined />}
-              disabled={isProcessing || (record.has_quotes && !isMondayOrTuesday) || createTaskMutation.isLoading}
+              disabled={isProcessing || (allDone) || (record.has_quotes && !isMondayOrTuesday && !allDone) || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'phrases')}
             >
               {record.active_task_type === 'phrases' && record.active_task_progress !== null 
