@@ -413,8 +413,7 @@ router.post('/:id/task', async (req, res) => {
 
     const result = await query(
       `INSERT INTO tasks (id, agent_type, payload, status, priority) 
-       VALUES ($1, $2, $3, 'pending', 1) 
-       RETURNING id`,
+       VALUES ($1, $2, $3, 'pending', 1)`,
       [taskId, agentType, JSON.stringify(payload)]
     )
 
