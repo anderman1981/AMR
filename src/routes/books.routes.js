@@ -114,27 +114,31 @@ router.get('/:id/content', async (req, res) => {
     }
     
     // Auto-transcribe if content is null
+    if (!book.file_path) {
+      console.error(`❌ Cannot transcribe book ${id}: file_path is missing`)
+      return res.status(400).json({ error: 'Book file path is missing, cannot transcribe' })
+    }
+
     console.log(`📝 Auto-transcribing missing content for book ${id}...`)
-    let text = ''
     try {
-      text = await extractTextFromFile(book.file_path)
-    } catch (err) {
-      console.error(`⚠️ Failed to auto-transcribe book ${id}:`, err.message)
-      // Return empty content instead of 500 if extraction fails
-      return res.json({ content: 'Content could not be extracted automatically. Please verify the file format.' })
+      const text = await extractTextFromFile(book.file_path)
+      
+      if (!text) {
+        throw new Error('Extraction returned empty content')
+      }
+
+      await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+      res.json({ content: text })
+    } catch (extractError) {
+      console.error(`❌ Extraction failed for book ${id}:`, extractError)
+      // Return a message instead of 500 to keep UI functional
+      res.json({ content: 'Content could not be extracted automatically. Please verify the file format or server logs.' })
     }
-    
-    if (text) {
-        await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
-    }
-    
-    res.json({ content: text || 'No content found in file.' })
   } catch (error) {
     console.error('Error fetching/transcribing book content:', error)
-    // Don't crash on 500, return error message
-    res.status(200).json({ content: 'Error loading content. Please check server logs.' })
+    res.status(500).json({ error: 'Error fetching book content', details: error.message })
   }
-})
+});
 
 // Get a single book by ID
 router.get('/:id', async (req, res) => {
@@ -356,6 +360,10 @@ router.post('/:id/cards', async (req, res) => {
     if (bookCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Book not found' })
     }
+
+    // Prevent duplicates: Delete existing cards of the same type for this book
+    console.log(`🧹 Deleting old cards of type "${type}" for book ${id} before inserting new one...`)
+    await query('DELETE FROM generated_cards WHERE book_id = $1 AND type = $2', [id, type])
 
     // Insert card
     const result = await query(

@@ -124,6 +124,9 @@ function BookDetail() {
     const extractions = bookCards?.filter(c => c.type === 'key_points' || c.type === 'extractor') || []
     const phrases = bookCards?.filter(c => c.type === 'quotes' || c.type === 'phrases') || []
 
+    // Only show the latest summary to avoid UI duplication if database has multiple
+    const latestSummary = summaries.length > 0 ? summaries[0] : null
+
     const breadcrumbItems = [
         { title: 'Libros', onClick: () => navigate('/books'), className: 'cursor-pointer' },
         { title: book.name }
@@ -161,7 +164,7 @@ function BookDetail() {
                     >
                         {book?.file_path ? (
                             <iframe
-                                src={`http://localhost:3467/data/books/${book.file_path.split('/').pop()}`}
+                                src={pdfUrl}
                                 style={{ width: '100%', height: '100%', border: 'none' }}
                                 title="PDF Viewer"
                             />
@@ -202,22 +205,19 @@ function BookDetail() {
                                                 </Button>
                                             </div>
 
-                                            {summaries.length > 0 ? (
-                                                // Deduplicate summaries by content or ID to prevent UI repetition
-                                                [...new Map(summaries.map(item => [item.content, item])).values()].map((card, idx) => (
-                                                    <div key={idx}>
-                                                        <ReactMarkdown>{card.content}</ReactMarkdown>
-                                                        <Divider />
-                                                        <Space direction="vertical" size="small">
-                                                            <Text strong>Categoría:</Text>
-                                                            <Tag color="blue">{book?.category || 'General'}</Tag>
-                                                            <Text strong>Estado:</Text>
-                                                            <Tag color={book?.processed ? 'green' : 'orange'}>
-                                                                {book?.processed ? 'Completado' : 'Pendiente'}
-                                                            </Tag>
-                                                        </Space>
-                                                    </div>
-                                                ))
+                                            {latestSummary ? (
+                                                <div key={latestSummary.id || 0}>
+                                                    <ReactMarkdown>{latestSummary.content}</ReactMarkdown>
+                                                    <Divider />
+                                                    <Space direction="vertical" size="small">
+                                                        <Text strong>Categoría:</Text>
+                                                        <Tag color="blue">{book?.category || 'General'}</Tag>
+                                                        <Text strong>Estado:</Text>
+                                                        <Tag color={book?.processed ? 'green' : 'orange'}>
+                                                            {book?.processed ? 'Completado' : 'Pendiente'}
+                                                        </Tag>
+                                                    </Space>
+                                                </div>
                                             ) : (
                                                 <Empty description="No hay análisis disponible. Genera uno con el Agente." />
                                             )}
@@ -282,11 +282,11 @@ function BookDetail() {
                                             {phrases.length > 0 ? (
                                                 <Space direction="vertical" style={{ width: '100%' }}>
                                                     {phrases.map((card, idx) => (
-                                                        <Card 
-                                                            key={idx} 
+                                                        <Card
+                                                            key={idx}
                                                             size="small"
                                                             hoverable
-                                                            style={{ 
+                                                            style={{
                                                                 borderRadius: '8px',
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                                                                 border: '1px solid #f0f0f0'
@@ -302,13 +302,13 @@ function BookDetail() {
                                                     ))}
                                                 </Space>
                                             ) : (
-                                                 <Empty 
-                                                    image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                                                <Empty
+                                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
                                                     description={
-                                                        <span>No hay citas guardadas. <br/>
-                                                        <span style={{ fontSize: '12px', color: '#888' }}>Pídele al agente que extraiga las mejores frases.</span>
+                                                        <span>No hay citas guardadas. <br />
+                                                            <span style={{ fontSize: '12px', color: '#888' }}>Pídele al agente que extraiga las mejores frases.</span>
                                                         </span>
-                                                    } 
+                                                    }
                                                 />
                                             )}
                                         </div>
@@ -404,8 +404,8 @@ function BookDetail() {
                                                                 })}
                                                                 {bookContent.content.split('\n').length > visibleLines && (
                                                                     <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '20px' }}>
-                                                                        <Button 
-                                                                            type="dashed" 
+                                                                        <Button
+                                                                            type="dashed"
                                                                             onClick={() => setVisibleLines(prev => prev + 500)}
                                                                             loading={false}
                                                                         >
