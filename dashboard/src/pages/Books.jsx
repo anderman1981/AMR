@@ -151,7 +151,7 @@ function Books() {
       render: (status, record) => {
         const isCompleted = record.progress === 100
         const isProcessing = (status === 'processing' || !!record.active_task_id) && !isCompleted
-        
+
         const displayStatus = isCompleted ? 'Procesado' : isProcessing ? 'Procesando' : 'Pendiente'
         const color = isCompleted ? '#f6ffed' : isProcessing ? 'orange' : 'default'
         const borderColor = isCompleted ? '#b7eb8f' : undefined
@@ -161,9 +161,9 @@ function Books() {
           <Space direction="vertical" size={0}>
             <Tag
               color={color}
-              style={{ 
-                cursor: 'pointer', 
-                margin: 0, 
+              style={{
+                cursor: 'pointer',
+                margin: 0,
                 backgroundColor: isCompleted ? color : undefined,
                 borderColor: borderColor,
                 color: textColor
@@ -215,7 +215,7 @@ function Books() {
             <Button
               size="small"
               icon={<SearchOutlined />}
-              disabled={isProcessing || record.has_summary || createTaskMutation.isLoading}
+              disabled={isProcessing || record.has_key_points || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'extractor')}
             >
               Extractor

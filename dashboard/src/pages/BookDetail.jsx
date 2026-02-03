@@ -240,7 +240,7 @@ function BookDetail() {
                                                 <Button
                                                     size="small"
                                                     icon={<RobotOutlined />}
-                                                    disabled={!!book?.active_task_id || book?.has_summary}
+                                                    disabled={!!book?.active_task_id || book?.has_key_points}
                                                     onClick={() => handleTriggerAgent('extractor')}
                                                 >
                                                     Extraer Insights

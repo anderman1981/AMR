@@ -58,6 +58,7 @@ router.get('/', async (req, res) => {
              t.progress as active_task_progress,
              (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
       FROM books b
       LEFT JOIN tasks t ON (
@@ -147,8 +148,19 @@ router.get('/:id/content', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const result = await query('SELECT * FROM books WHERE id = $1', [id])
+    const result = await query(`
+      SELECT b.*,
+             (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
+      FROM books b WHERE b.id = $1
+    `, [id])
     
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+
     const book = result.rows[0]
     res.json({
       ...book,
