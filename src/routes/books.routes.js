@@ -115,14 +115,31 @@ router.get('/:id/content', async (req, res) => {
     
     // Auto-transcribe if content is null
     console.log(`📝 Auto-transcribing missing content for book ${id}...`)
-    const text = await extractTextFromFile(book.file_path)
     
-    await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
-    
-    res.json({ content: text })
+    if (!book.file_path) {
+      console.error(`❌ Cannot transcribe book ${id}: file_path is missing`)
+      return res.status(400).json({ error: 'Book file path is missing, cannot transcribe' })
+    }
+
+    try {
+      const text = await extractTextFromFile(book.file_path)
+      
+      if (!text) {
+        throw new Error('Extraction returned empty content')
+      }
+
+      await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+      res.json({ content: text })
+    } catch (extractError) {
+      console.error(`❌ Extraction failed for book ${id}:`, extractError)
+      res.status(500).json({ 
+        error: 'Failed to extract text from file', 
+        details: extractError.message 
+      })
+    }
   } catch (error) {
     console.error('Error fetching/transcribing book content:', error)
-    res.status(500).json({ error: 'Error fetching book content' })
+    res.status(500).json({ error: 'Error fetching book content', details: error.message })
   }
 })
 
@@ -346,6 +363,10 @@ router.post('/:id/cards', async (req, res) => {
     if (bookCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Book not found' })
     }
+
+    // Prevent duplicates: Delete existing cards of the same type for this book
+    console.log(`🧹 Deleting old cards of type "${type}" for book ${id} before inserting new one...`)
+    await query('DELETE FROM generated_cards WHERE book_id = $1 AND type = $2', [id, type])
 
     // Insert card
     const result = await query(
