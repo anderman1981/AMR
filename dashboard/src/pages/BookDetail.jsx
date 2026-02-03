@@ -116,8 +116,8 @@ function BookDetail() {
         )
     }
 
-    // Build the PDF URL (using the backend static route and the new filename property)
-    const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3467'}/data/books/${encodeURIComponent(book.filename || '')}`
+    // Build the PDF URL using the relative data path (handled by Vite proxy in dev, or same host in prod)
+    const pdfUrl = `/data/books/${encodeURIComponent(book.filename || '')}`
 
     // Organize data for the 3 sections
     const summaries = bookCards?.filter(c => c.type === 'summary') || []

@@ -10,6 +10,10 @@ export default defineConfig({
       '/api': {
         target: process.env.API_URL || 'http://localhost:3467',
         changeOrigin: true
+      },
+      '/data': {
+        target: process.env.API_URL || 'http://localhost:3467',
+        changeOrigin: true
       }
     }
   },
