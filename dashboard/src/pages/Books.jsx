@@ -272,6 +272,22 @@ function Books() {
           </Space>
         </Card>
 
+        {/* Tabla de Libros */}
+        <Card title="📖 Libros Disponibles" size="small">
+          <Table
+            columns={columns}
+            dataSource={books}
+            loading={isLoading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Total: ${total} libros`
+            }}
+            scroll={{ x: true }}
+          />
+        </Card>
+
         {/* Subida de Archivos */}
         <Card title="📤 Subir Libros" size="small">
           <Dragger
@@ -291,22 +307,6 @@ function Books() {
               Soporta PDF, EPUB, MOBI, TXT y DOCX
             </p>
           </Dragger>
-        </Card>
-
-        {/* Tabla de Libros */}
-        <Card title="📖 Libros Disponibles" size="small">
-          <Table
-            columns={columns}
-            dataSource={books}
-            loading={isLoading}
-            rowKey="id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total: ${total} libros`
-            }}
-            scroll={{ x: true }}
-          />
         </Card>
 
         {/* Estadísticas */}
