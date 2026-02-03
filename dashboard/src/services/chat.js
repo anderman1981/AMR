@@ -1,9 +1,8 @@
-import axios from 'axios'
-import { API_URL } from '../config'
+import api from './api'
 
 export const sendGlobalMessage = async (message, history = []) => {
     try {
-        const response = await axios.post(`${API_URL}/chat/global`, {
+        const response = await api.post('/api/chat/global', {
             message,
             history
         })
