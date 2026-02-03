@@ -181,6 +181,29 @@ const runPhrasesAgent = async (task, bookId) => {
     throw new Error(`Failed to run phrases agent: ${err.message}`)
   }
 }
+// 4. Combined Agent: Runs everything in sequence
+const runFullAnalysis = async (task, bookId) => {
+  console.log(`🚀 Starting FULL ANALYSIS for Book ID: ${bookId}`)
+  try {
+    // Stage 1: Reader
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 5 })
+    await runReaderAgent(task, bookId)
+    
+    // Stage 2: Extractor
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 35 })
+    await runExtractorAgent(task, bookId)
+    
+    // Stage 3: Phrases
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 70 })
+    await runPhrasesAgent(task, bookId)
+    
+    await axios.put(`${API_URL}/api/books/${bookId}/progress`, { progress: 100 })
+    return { success: true, message: 'Full analysis completed (Summary, Insights, Quotes)' }
+  } catch (err) {
+    console.error(`❌ Full analysis failed for book ${bookId}:`, err.message)
+    throw new Error(`Full analysis failed: ${err.message}`)
+  }
+}
 
 // --- WORKER LOOP ---
 
@@ -209,6 +232,8 @@ const processTask = async (task, headers) => {
             result = await runExtractorAgent(task, book_id)
         } else if (action === 'phrases') {
             result = await runPhrasesAgent(task, book_id)
+        } else if (action === 'full_analysis') {
+            result = await runFullAnalysis(task, book_id)
         } else {
             console.warn('Unknown task action:', action)
             result = { success: false, message: 'Unknown action' }

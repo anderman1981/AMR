@@ -252,14 +252,21 @@ export const query = async (sql, params = []) => {
     await connectionPromise
   }
   
+  // Convert Postgres syntax ($1, $2) to SQLite syntax (?, ?)
+  // This ensures compatibility with existing codebases migrating from PG
+  let finalSql = sql
+  if (params && params.length > 0) {
+    finalSql = sql.replace(/\$\d+/g, '?')
+  }
+  
   try {
-    const trimmedSql = sql.trim().toLowerCase()
+    const trimmedSql = finalSql.trim().toLowerCase()
     
     if (trimmedSql.startsWith('select') || trimmedSql.startsWith('pragma') || trimmedSql.startsWith('with')) {
-       const rows = dbInstance.all(sql, params)
+       const rows = dbInstance.all(finalSql, params)
        return { rows, rowCount: rows.length }
     } else {
-       const result = dbInstance.run(sql, params)
+       const result = dbInstance.run(finalSql, params)
        return { 
          rows: [], 
          rowCount: result.changes, 
