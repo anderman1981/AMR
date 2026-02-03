@@ -75,12 +75,14 @@ function GlobalChat() {
                 flexDirection: 'column',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}
-            bodyStyle={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                padding: '0'
+            styles={{
+                body: {
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    padding: '0'
+                }
             }}
         >
             {/* Messages Area */}
