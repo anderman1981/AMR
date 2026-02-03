@@ -21,6 +21,7 @@ function BookDetail() {
     const foliateRef = useRef(null)
     const [isChatLoading, setIsChatLoading] = useState(false)
     const [currentChatId, setCurrentChatId] = useState(null)
+    const [chatInput, setChatInput] = useState('')
     const chatEndRef = useRef(null)
     const chatContainerRef = useRef(null)
 
