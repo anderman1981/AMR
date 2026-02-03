@@ -115,14 +115,24 @@ router.get('/:id/content', async (req, res) => {
     
     // Auto-transcribe if content is null
     console.log(`📝 Auto-transcribing missing content for book ${id}...`)
-    const text = await extractTextFromFile(book.file_path)
+    let text = ''
+    try {
+      text = await extractTextFromFile(book.file_path)
+    } catch (err) {
+      console.error(`⚠️ Failed to auto-transcribe book ${id}:`, err.message)
+      // Return empty content instead of 500 if extraction fails
+      return res.json({ content: 'Content could not be extracted automatically. Please verify the file format.' })
+    }
     
-    await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+    if (text) {
+        await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+    }
     
-    res.json({ content: text })
+    res.json({ content: text || 'No content found in file.' })
   } catch (error) {
     console.error('Error fetching/transcribing book content:', error)
-    res.status(500).json({ error: 'Error fetching book content' })
+    // Don't crash on 500, return error message
+    res.status(200).json({ content: 'Error loading content. Please check server logs.' })
   }
 })
 

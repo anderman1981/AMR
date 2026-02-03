@@ -203,7 +203,8 @@ function BookDetail() {
                                             </div>
 
                                             {summaries.length > 0 ? (
-                                                summaries.map((card, idx) => (
+                                                // Deduplicate summaries by content or ID to prevent UI repetition
+                                                [...new Map(summaries.map(item => [item.content, item])).values()].map((card, idx) => (
                                                     <div key={idx}>
                                                         <ReactMarkdown>{card.content}</ReactMarkdown>
                                                         <Divider />
