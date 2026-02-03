@@ -210,7 +210,9 @@ function Books() {
               disabled={isProcessing || record.has_content || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'reader')}
             >
-              Reader
+              {record.active_task_type === 'reader' && record.active_task_progress !== null 
+                ? `Reader (${record.active_task_progress}%)` 
+                : 'Reader'}
             </Button>
             <Button
               size="small"
@@ -218,7 +220,9 @@ function Books() {
               disabled={isProcessing || record.has_key_points || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'extractor')}
             >
-              Extractor
+              {record.active_task_type === 'extractor' && record.active_task_progress !== null 
+                ? `Extractor (${record.active_task_progress}%)` 
+                : 'Extractor'}
             </Button>
             <Button
               size="small"
@@ -226,7 +230,9 @@ function Books() {
               disabled={isProcessing || (record.has_quotes && !isMondayOrTuesday) || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'phrases')}
             >
-              Phrases
+              {record.active_task_type === 'phrases' && record.active_task_progress !== null 
+                ? `Phrases (${record.active_task_progress}%)` 
+                : 'Phrases'}
             </Button>
           </Space>
         )

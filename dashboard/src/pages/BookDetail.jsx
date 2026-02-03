@@ -202,7 +202,9 @@ function BookDetail() {
                                                     disabled={!!book?.active_task_id || book?.has_content}
                                                     onClick={() => handleTriggerAgent('reader')}
                                                 >
-                                                    Generar Análisis
+                                                    {book?.active_task_type === 'reader' && book?.active_task_progress !== null 
+                                                        ? `Generar Análisis (${book?.active_task_progress}%)` 
+                                                        : 'Generar Análisis'}
                                                 </Button>
                                             </div>
 
@@ -243,7 +245,9 @@ function BookDetail() {
                                                     disabled={!!book?.active_task_id || book?.has_key_points}
                                                     onClick={() => handleTriggerAgent('extractor')}
                                                 >
-                                                    Extraer Insights
+                                                    {book?.active_task_type === 'extractor' && book?.active_task_progress !== null 
+                                                        ? `Extraer Insights (${book?.active_task_progress}%)` 
+                                                        : 'Extraer Insights'}
                                                 </Button>
                                             </div>
 
@@ -278,7 +282,9 @@ function BookDetail() {
                                                     disabled={!!book?.active_task_id || (book?.has_quotes && (new Date().getDay() !== 1 && new Date().getDay() !== 2))}
                                                     onClick={() => handleTriggerAgent('phrases')}
                                                 >
-                                                    Generar Citas (10)
+                                                    {book?.active_task_type === 'phrases' && book?.active_task_progress !== null 
+                                                        ? `Generar Citas (${book?.active_task_progress}%)` 
+                                                        : 'Generar Citas (10)'}
                                                 </Button>
                                             </div>
 

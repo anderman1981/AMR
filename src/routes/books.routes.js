@@ -56,6 +56,7 @@ router.get('/', async (req, res) => {
              t.id as active_task_id, 
              t.status as active_task_status, 
              t.progress as active_task_progress,
+             JSON_EXTRACT(t.payload, '$.action') as active_task_type,
              (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
@@ -153,8 +154,17 @@ router.get('/:id', async (req, res) => {
              (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
-             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
-      FROM books b WHERE b.id = $1
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes,
+             t.id as active_task_id,
+             t.status as active_task_status,
+             t.progress as active_task_progress,
+             JSON_EXTRACT(t.payload, '$.action') as active_task_type
+      FROM books b 
+      LEFT JOIN tasks t ON (
+        JSON_EXTRACT(t.payload, '$.book_id') = b.id 
+        AND t.status IN ('pending', 'assigned')
+      )
+      WHERE b.id = $1
     `, [id])
     
     if (result.rows.length === 0) {
