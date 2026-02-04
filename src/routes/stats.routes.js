@@ -1,4 +1,3 @@
-import express from 'express'
 import { query } from '../config/sqlite.js'
 
 const router = express.Router()
@@ -8,6 +7,8 @@ const router = express.Router()
  * @desc    Get aggregated system statistics
  * @access  Public
  */
+router.get('/', async (req, res) => {
+    try {
     const [booksResult, tasksResult, devicesResult, knowledgeResult, interactionsResult, agentUsageResult, taskTimeResult] = await Promise.all([
         query(`
             SELECT 
@@ -97,8 +98,8 @@ const router = express.Router()
 
     res.json(stats)
   } catch (error) {
-    console.error('Error fetching stats:', error)
-    res.status(500).json({ error: 'Error fetching system statistics' })
+    console.error('Error fetching system stats:', error)
+    res.status(500).json({ error: 'Failed to fetch system stats' })
   }
 })
 

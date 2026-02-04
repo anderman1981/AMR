@@ -170,7 +170,7 @@ function Dashboard() {
 
         {/* Agent Performance */}
         <Col xs={24} lg={8}>
-          <Card title="🤖 Rendimiento de Agentes" loading={isLoading} style={{ height: '100%' }} bodyStyle={{ padding: 0 }}>
+          <Card title="🤖 Rendimiento de Agentes" loading={isLoading} style={{ height: '100%' }} styles={{ body: { padding: 0 } }}>
             <Table
               dataSource={data.agentStats?.breakdown || []}
               columns={agentColumns}
