@@ -131,6 +131,40 @@ class SQLiteDatabase {
         success BOOLEAN DEFAULT 1,
         metrics TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      `CREATE TABLE IF NOT EXISTS book_chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id INTEGER NOT NULL,
+        title TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (book_id) REFERENCES books(id)
+      )`,
+      
+      `CREATE TABLE IF NOT EXISTS book_chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (chat_id) REFERENCES book_chats(id)
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS global_chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS global_chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (chat_id) REFERENCES global_chats(id)
       )`
     ];
 
@@ -219,6 +253,45 @@ class SQLiteDatabase {
       this.db.close();
       console.log('✅ Conexión SQLite cerrada');
     }
+  }
+}
+
+// Singleton instance
+const dbInstance = new SQLiteDatabase()
+let connectionPromise = null
+
+export const query = async (sql, params = []) => {
+  if (!dbInstance.db) {
+    if (!connectionPromise) {
+      connectionPromise = dbInstance.connect()
+    }
+    await connectionPromise
+  }
+  
+  // Convert Postgres syntax ($1, $2) to SQLite syntax (?, ?)
+  // This ensures compatibility with existing codebases migrating from PG
+  let finalSql = sql
+  if (params && params.length > 0) {
+    finalSql = sql.replace(/\$\d+/g, '?')
+  }
+  
+  try {
+    const trimmedSql = finalSql.trim().toLowerCase()
+    
+    if (trimmedSql.startsWith('select') || trimmedSql.startsWith('pragma') || trimmedSql.startsWith('with')) {
+       const rows = dbInstance.all(finalSql, params)
+       return { rows, rowCount: rows.length }
+    } else {
+       const result = dbInstance.run(finalSql, params)
+       return { 
+         rows: [], 
+         rowCount: result.changes, 
+         insertId: result.id 
+       }
+    }
+  } catch (error) {
+    console.error('SQL Error:', error.message)
+    throw error
   }
 }
 

@@ -1,5 +1,5 @@
 import express from 'express'
-import { query } from '../config/database.js'
+import { query } from '../config/sqlite.js'
 import multer from 'multer'
 import path from 'path'
 import { promises as fs } from 'fs'
@@ -55,7 +55,12 @@ router.get('/', async (req, res) => {
       SELECT b.*, 
              t.id as active_task_id, 
              t.status as active_task_status, 
-             t.progress as active_task_progress
+             t.progress as active_task_progress,
+             JSON_EXTRACT(t.payload, '$.action') as active_task_type,
+             (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
       FROM books b
       LEFT JOIN tasks t ON (
         JSON_EXTRACT(t.payload, '$.book_id') = b.id 
@@ -114,24 +119,58 @@ router.get('/:id/content', async (req, res) => {
     }
     
     // Auto-transcribe if content is null
+    if (!book.file_path) {
+      console.error(`❌ Cannot transcribe book ${id}: file_path is missing`)
+      return res.status(400).json({ error: 'Book file path is missing, cannot transcribe' })
+    }
+
     console.log(`📝 Auto-transcribing missing content for book ${id}...`)
-    const text = await extractTextFromFile(book.file_path)
-    
-    await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
-    
-    res.json({ content: text })
+    try {
+      const text = await extractTextFromFile(book.file_path)
+      
+      if (!text) {
+        throw new Error('Extraction returned empty content')
+      }
+
+      await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+      res.json({ content: text })
+    } catch (extractError) {
+      console.error(`❌ Extraction failed for book ${id}:`, extractError)
+      // Return a message instead of 500 to keep UI functional
+      res.json({ content: 'Content could not be extracted automatically. Please verify the file format or server logs.' })
+    }
   } catch (error) {
     console.error('Error fetching/transcribing book content:', error)
-    res.status(500).json({ error: 'Error fetching book content' })
+    res.status(500).json({ error: 'Error fetching book content', details: error.message })
   }
-})
+});
 
 // Get a single book by ID
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const result = await query('SELECT * FROM books WHERE id = $1', [id])
+    const result = await query(`
+      SELECT b.*,
+             (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
+             (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes,
+             t.id as active_task_id,
+             t.status as active_task_status,
+             t.progress as active_task_progress,
+             JSON_EXTRACT(t.payload, '$.action') as active_task_type
+      FROM books b 
+      LEFT JOIN tasks t ON (
+        JSON_EXTRACT(t.payload, '$.book_id') = b.id 
+        AND t.status IN ('pending', 'assigned')
+      )
+      WHERE b.id = $1
+    `, [id])
     
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+
     const book = result.rows[0]
     res.json({
       ...book,
@@ -140,6 +179,54 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching book:', error)
     res.status(500).json({ error: 'Error fetching book' })
+  }
+})
+
+// Serve the raw book file
+router.get('/:id/raw', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query('SELECT file_path, name, format FROM books WHERE id = $1', [id])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    
+    const book = result.rows[0]
+    
+    if (!book.file_path) {
+      return res.status(404).json({ error: 'File path not found for this book' })
+    }
+
+    const absolutePath = path.isAbsolute(book.file_path) 
+      ? book.file_path 
+      : path.join(process.cwd(), book.file_path)
+
+    try {
+      await fs.access(absolutePath)
+    } catch (e) {
+      console.error(`❌ File not found at path: ${absolutePath}`)
+      return res.status(404).json({ error: 'Book file not found on disk' })
+    }
+
+    // Set content type based on format
+    let contentType = 'application/octet-stream'
+    const format = (book.format || path.extname(absolutePath).substring(1)).toLowerCase()
+    
+    if (format === 'pdf') contentType = 'application/pdf'
+    else if (format === 'epub') contentType = 'application/epub+zip'
+    else if (format === 'mobi') contentType = 'application/x-mobipocket-ebook'
+    else if (format === 'txt') contentType = 'text/plain'
+
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(absolutePath)}"`)
+    
+    // Use res.sendFile for efficient streaming
+    res.sendFile(absolutePath)
+
+  } catch (error) {
+    console.error('Error serving raw book file:', error)
+    res.status(500).json({ error: 'Error serving raw book file' })
   }
 })
 
@@ -347,6 +434,10 @@ router.post('/:id/cards', async (req, res) => {
       return res.status(404).json({ error: 'Book not found' })
     }
 
+    // Prevent duplicates: Delete existing cards of the same type for this book
+    console.log(`🧹 Deleting old cards of type "${type}" for book ${id} before inserting new one...`)
+    await query('DELETE FROM generated_cards WHERE book_id = $1 AND type = $2', [id, type])
+
     // Insert card
     const result = await query(
       'INSERT INTO generated_cards (book_id, category_id, type, content, tags) VALUES ($1, $2, $3, $4, $5) RETURNING id',
@@ -456,11 +547,11 @@ router.put('/:id/progress', async (req, res) => {
   }
 })
 
-// Chat with book using Ollama
+// Chat with book using Ollama (with persistence)
 router.post('/:id/chat', async (req, res) => {
   try {
     const { id } = req.params
-    const { message } = req.body
+    const { message, chat_id } = req.body
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' })
@@ -473,65 +564,63 @@ router.post('/:id/chat', async (req, res) => {
     }
     const book = bookResult.rows[0]
 
-    // Get book content
-    let content = book.content
-    if (!content) {
-      try {
-        content = await extractTextFromFile(book.file_path)
-      } catch (err) {
-        console.error('Error extracting book content:', err)
-        content = 'Content not available'
-      }
+    // Determine or create chat session
+    let chatId = chat_id
+    if (!chatId) {
+      const chatResult = await query(
+        'INSERT INTO book_chats (book_id, title) VALUES ($1, $2) RETURNING id',
+        [id, message.substring(0, 50) + (message.length > 50 ? '...' : '')]
+      )
+      // SQLite returns insertId, not rows
+      chatId = chatResult.insertId
     }
 
-    // Get generated cards for additional context
+    // Save user message
+    await query(
+      'INSERT INTO book_chat_messages (chat_id, role, content) VALUES ($1, $2, $3)',
+      [chatId, 'user', message]
+    )
+
+    // Get conversation history (last 10 messages)
+    const historyResult = await query(
+      'SELECT role, content FROM book_chat_messages WHERE chat_id = $1 ORDER BY created_at ASC LIMIT 10',
+      [chatId]
+    )
+    const history = historyResult.rows
+
+    // Get book content excerpt and cards
+    let content = book.content || ''
     const cardsResult = await query(
-      'SELECT type, content FROM generated_cards WHERE book_id = $1 ORDER BY created_at DESC',
+      'SELECT type, content FROM generated_cards WHERE book_id = $1',
       [id]
     )
     const cards = cardsResult.rows
 
-    // Build context from book and cards
-    const summaryCards = cards.filter(c => c.type === 'summary')
-    const extractionCards = cards.filter(c => c.type === 'key_points' || c.type === 'extractor')
-    const phraseCards = cards.filter(c => c.type === 'quotes' || c.type === 'phrases')
-
-    let context = `Book Title: ${book.name}\n`
-    context += `Category: ${book.category || 'General'}\n\n`
-
-    if (summaryCards.length > 0) {
-      context += `Summary:\n${summaryCards[0].content}\n\n`
+    // Context formatting
+    let contextStr = `Book Title: ${book.name}\n`
+    if (cards.length > 0) {
+      contextStr += `Insights:\n${cards.map(c => `[${c.type}] ${c.content}`).join('\n')}\n`
+    }
+    if (content) {
+      contextStr += `Content Excerpt:\n${content.substring(0, 3000)}\n`
     }
 
-    if (extractionCards.length > 0) {
-      context += `Key Points:\n${extractionCards.map(c => c.content).join('\n')}\n\n`
-    }
+    // Format history for the prompt
+    const historyStr = history.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')
 
-    if (phraseCards.length > 0) {
-      context += `Notable Quotes:\n${phraseCards.map(c => c.content).join('\n')}\n\n`
-    }
+    // Prompt construction
+    const prompt = `You are a coach based on the book: ${book.name}.
+    Context:
+    ${contextStr}
 
-    // Add snippet of actual content (first 3000 chars to avoid token limits)
-    if (content && content !== 'Content not available') {
-      context += `Book Content (excerpt):\n${content.substring(0, 3000)}...\n\n`
-    }
+    Conversation History:
+    ${historyStr}
 
-    // Build prompt for Ollama
-    const prompt = `You are a dedicated COACH and expert on the book "${book.name}".
-    Your goal is to help the user understand and APPLY the principles of this book to their life/business.
+    New Question: ${message}
     
-    Context about the book:
-    ${context}
-    
-    User question: ${message}
-    
-    Instructions:
-    1. Answer as a coach: supportive, actionable, and knowledgeable.
-    2. Use the book's specific concepts and terminology.
-    3. If the user asks for advice, give concrete steps based on the book.
-    4. If the info isn't in the context, admit it but try to give general advice aligned with the book's theme.`
+    Assistant (Coach):`
 
-    // Call Ollama API
+    // Call Ollama
     const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434'
     const ollamaModel = process.env.OLLAMA_MODEL || 'llama3'
 
@@ -541,42 +630,58 @@ router.post('/:id/chat', async (req, res) => {
       body: JSON.stringify({
         model: ollamaModel,
         prompt: prompt,
-        stream: false,
-        options: {
-          temperature: 0.7,
-          num_predict: 500
-        }
+        stream: false
       })
     })
 
-    if (!ollamaResponse.ok) {
-      throw new Error(`Ollama API error: ${ollamaResponse.statusText}`)
-    }
+    if (!ollamaResponse.ok) throw new Error('Ollama error')
 
     const ollamaData = await ollamaResponse.json()
     const answer = ollamaData.response
 
+    // Save assistant response
+    await query(
+      'INSERT INTO book_chat_messages (chat_id, role, content) VALUES ($1, $2, $3)',
+      [chatId, 'assistant', answer]
+    )
+
     res.json({
       success: true,
       message: answer,
-      book: {
-        id: book.id,
-        name: book.name
-      }
+      chat_id: chatId
     })
 
   } catch (error) {
-    console.error('Error in chat endpoint:', error)
-    
-    // Check if Ollama is the issue
-    if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
-      return res.status(503).json({ 
-        error: 'Ollama service is not available. Please ensure Ollama is running.',
-        details: error.message
-      })
-    }
-    
-    res.status(500).json({ error: 'Error processing chat request' })
+    console.error('Error in chat:', error)
+    res.status(500).json({ error: 'Chat failed' })
+  }
+})
+
+// Get all chat sessions for a book
+router.get('/:id/chats', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query(
+      'SELECT * FROM book_chats WHERE book_id = $1 ORDER BY updated_at DESC',
+      [id]
+    )
+    res.json(result.rows)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch chats' })
+  }
+})
+
+// Get messages for a session
+router.get('/chats/:chatId/messages', async (req, res) => {
+  try {
+    const { chatId } = req.params
+    const result = await query(
+      'SELECT * FROM book_chat_messages WHERE chat_id = $1 ORDER BY created_at ASC',
+      [chatId]
+    )
+    res.json(result.rows)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch messages' })
   }
 })
 

@@ -13,7 +13,7 @@ router.post('/books/:id/task', async (req, res) => {
     const { id } = req.params
     const { type } = req.body // e.g., 'reader', 'extractor', 'phrases'
 
-    if (!['reader', 'extractor', 'phrases'].includes(type)) {
+    if (!['reader', 'extractor', 'phrases', 'full_analysis'].includes(type)) {
       return res.status(400).json({ error: 'Invalid task type' })
     }
 

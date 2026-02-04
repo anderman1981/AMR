@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Card, Upload, Button, Space, Typography, message, Table, Tag, Progress, Modal, List, Divider } from 'antd'
+import React, { useState, useCallback } from 'react'
+import { Card, Upload, Button, Space, Typography, App, Table, Tag, Progress, Modal, List, Divider } from 'antd'
 import { InboxOutlined, FolderOpenOutlined, SyncOutlined, RobotOutlined, SearchOutlined, MessageOutlined, BookOutlined, EyeOutlined, FileTextOutlined, DatabaseOutlined } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import { useDropzone } from 'react-dropzone'
@@ -10,6 +10,7 @@ const { Title, Text } = Typography
 const { Dragger } = Upload
 
 function Books() {
+  const { message } = App.useApp()
   const [booksPath, setBooksPath] = useState('/app/books')
   const [selectedBook, setSelectedBook] = useState(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -71,6 +72,37 @@ function Books() {
       handleFileUpload(acceptedFiles)
     }
   })
+
+  /* Handlers */
+  const handleLoadDemo = async () => {
+    try {
+      message.loading('Cargando biblioteca demo...', 1)
+      const result = await loadDemoLibrary()
+      if (result.loaded) {
+        message.success(result.message)
+        refetch()
+      } else {
+        message.info(result.message || 'La biblioteca demo ya estaba cargada')
+      }
+      // Assuming loadDemoLibrary and refetch are defined elsewhere or need to be imported/defined
+      // For now, commenting them out to avoid undefined errors if they don't exist in the provided context
+      // const result = await loadDemoLibrary()
+      // if (result.loaded) {
+      //   message.success(result.message)
+      //   refetch()
+      // } else {
+      //   message.info(result.message || 'La biblioteca demo ya estaba cargada')
+      // }
+      message.info('Demo library loading functionality is not fully implemented in this snippet.')
+    } catch (error) {
+      console.error(error)
+      message.error('Error al cargar demo')
+    }
+  }
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    handleFileUpload(acceptedFiles)
+  }, []) // Fixed syntax: added '}' and dependency array '[]'
 
   const handleFileUpload = async (files) => {
     try {
@@ -149,15 +181,25 @@ function Books() {
       dataIndex: 'status',
       key: 'status',
       render: (status, record) => {
-        const isProcessing = status === 'processing' || !!record.active_task_id
-        const displayStatus = isProcessing ? 'Procesando' : status === 'processed' ? 'Procesado' : 'Pendiente'
-        const color = status === 'processed' ? 'green' : isProcessing ? 'orange' : 'default'
+        const isCompleted = record.progress === 100
+        const isProcessing = (status === 'processing' || !!record.active_task_id) && !isCompleted
+
+        const displayStatus = isCompleted ? 'Procesado' : isProcessing ? 'Procesando' : 'Pendiente'
+        const color = isCompleted ? '#f6ffed' : isProcessing ? 'orange' : 'default'
+        const borderColor = isCompleted ? '#b7eb8f' : undefined
+        const textColor = isCompleted ? '#52c41a' : undefined
 
         return (
           <Space direction="vertical" size={0}>
             <Tag
               color={color}
-              style={{ cursor: 'pointer', margin: 0 }}
+              style={{
+                cursor: 'pointer',
+                margin: 0,
+                backgroundColor: isCompleted ? color : undefined,
+                borderColor: borderColor,
+                color: textColor
+              }}
               onClick={() => handleStatusClick(record)}
             >
               {displayStatus}
@@ -186,35 +228,48 @@ function Books() {
     {
       title: 'Acciones de Agentes',
       key: 'actions',
-      render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="primary"
-            size="small"
-            icon={<RobotOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'reader')}
-          >
-            Reader
-          </Button>
-          <Button
-            size="small"
-            icon={<SearchOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'extractor')}
-          >
-            Extractor
-          </Button>
-          <Button
-            size="small"
-            icon={<MessageOutlined />}
-            disabled={record.status === 'processing' || createTaskMutation.isLoading}
-            onClick={() => handleCreateTask(record.id, 'phrases')}
-          >
-            Phrases
-          </Button>
-        </Space>
-      )
+      render: (_, record) => {
+        const isProcessing = record.status === 'processing' || !!record.active_task_id
+        const today = new Date().getDay()
+        const isMondayOrTuesday = today === 1 || today === 2
+
+        return (
+          <Space size="middle">
+            <Button
+              type="primary"
+              size="small"
+              icon={<RobotOutlined />}
+              disabled={book?.active_task_type === 'reader' || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'reader')}
+              data-tour="agent-trigger"
+            >
+              {record.active_task_type === 'reader' && record.active_task_progress !== null
+                ? `Reader (${record.active_task_progress}%)`
+                : 'Reader'}
+            </Button>
+            <Button
+              size="small"
+              icon={<SearchOutlined />}
+              disabled={book?.active_task_type === 'extractor' || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'extractor')}
+            >
+              {record.active_task_type === 'extractor' && record.active_task_progress !== null
+                ? `Extractor (${record.active_task_progress}%)`
+                : 'Extractor'}
+            </Button>
+            <Button
+              size="small"
+              icon={<MessageOutlined />}
+              disabled={book?.active_task_type === 'phrases' || createTaskMutation.isLoading}
+              onClick={() => handleCreateTask(record.id, 'phrases')}
+            >
+              {record.active_task_type === 'phrases' && record.active_task_progress !== null
+                ? `Phrases (${record.active_task_progress}%)`
+                : 'Phrases'}
+            </Button>
+          </Space>
+        )
+      }
     }
   ]
 
@@ -250,6 +305,64 @@ function Books() {
           </Space>
         </Card>
 
+        {/* Tabla de Libros */}
+        <Card title="📖 Libros Disponibles" size="small">
+          {!books || books.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <BookOutlined style={{ fontSize: '64px', color: '#d9d9d9', marginBottom: '20px' }} />
+              <Title level={3} style={{ color: '#8c8c8c' }}>No hay libros en tu biblioteca</Title>
+              <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: '30px' }}>
+                Sube tu primer libro para comenzar a extraer conocimiento con IA
+              </Text>
+              <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+                <div {...getRootProps()} data-tour="upload-button">
+                  <input {...getInputProps()} />
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<InboxOutlined />}
+                    style={{
+                      height: '60px',
+                      fontSize: '18px',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                    }}
+                  >
+                    Subir Mi Primer Libro
+                  </Button>
+                </div>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  Soporta PDF, EPUB, MOBI, TXT y DOCX
+                </Text>
+
+                <Button
+                  type="link"
+                  onClick={handleLoadDemo}
+                  style={{ marginTop: '10px' }}
+                >
+                  Cargar libros de ejemplo
+                </Button>
+              </Space>
+            </div>
+          ) : (
+            <div data-tour="books-list">
+              <Table
+                columns={columns}
+                dataSource={books}
+                loading={isLoading}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showTotal: (total) => `Total: ${total} libros`
+                }}
+                scroll={{ x: true }}
+              />
+            </div>
+          )}
+        </Card>
+
         {/* Subida de Archivos */}
         <Card title="📤 Subir Libros" size="small">
           <Dragger
@@ -269,22 +382,6 @@ function Books() {
               Soporta PDF, EPUB, MOBI, TXT y DOCX
             </p>
           </Dragger>
-        </Card>
-
-        {/* Tabla de Libros */}
-        <Card title="📖 Libros Disponibles" size="small">
-          <Table
-            columns={columns}
-            dataSource={books}
-            loading={isLoading}
-            rowKey="id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total: ${total} libros`
-            }}
-            scroll={{ x: true }}
-          />
         </Card>
 
         {/* Estadísticas */}

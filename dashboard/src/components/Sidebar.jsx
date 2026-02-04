@@ -24,6 +24,11 @@ function Sidebar() {
       label: 'Dashboard'
     },
     {
+      key: '/coach',
+      icon: <span style={{ fontSize: '16px' }}>🤖</span>, // Using emoji or icon
+      label: 'Coach AI'
+    },
+    {
       key: '/books',
       icon: <BookOutlined />,
       label: 'Libros'

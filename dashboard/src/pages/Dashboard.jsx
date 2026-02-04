@@ -1,15 +1,19 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery } from 'react-query'
 import { statsService } from '../services/stats'
-import { Card, Row, Col, Statistic, Progress, Typography, Space } from 'antd'
+import { Card, Row, Col, Statistic, Progress, Typography, Space, Table, Tag } from 'antd'
 import {
   BookOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  RobotOutlined,
+  BulbOutlined,
+  FileTextOutlined,
+  SnippetsOutlined
 } from '@ant-design/icons'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 function Dashboard() {
   const { data: stats, isLoading } = useQuery('system-stats', statsService.getSystemStats, {
@@ -24,118 +28,170 @@ function Dashboard() {
     processingBooks: 0,
     activeDevices: 0,
     completedTasks: 0,
-    systemHealth: 100
+    systemHealth: 100,
+    contentStats: { quotes: 0, summaries: 0, insights: 0 },
+    agentStats: { breakdown: [], totalExecutionTime: 0 },
+    brainMetrics: { score: 0, level: 1 }
   }
+
+  // Agent Table Columns
+  const agentColumns = [
+    { title: 'Agente', dataIndex: 'name', key: 'name', render: text => <Tag color="blue">{text.toUpperCase()}</Tag> },
+    { title: 'Ejecuciones', dataIndex: 'count', key: 'count' },
+    {
+      title: 'Uso (%)',
+      dataIndex: 'percentage',
+      key: 'percentage',
+      render: percent => <Progress percent={percent} size="small" />
+    }
+  ]
 
   return (
     <div>
       <Title level={2}>🎯 AMROIS Dashboard</Title>
 
+      {/* Top Row: Key Metrics */}
       <Row gutter={[16, 16]}>
-        {/* Estadísticas de Libros */}
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={8}>
           <Card loading={isLoading}>
             <Statistic
-              title="Total de Libros"
-              value={data.totalBooks}
-              prefix={<BookOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card loading={isLoading}>
-            <Statistic
-              title="Procesados"
+              title="Libros Procesados"
               value={data.processedBooks}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card loading={isLoading}>
-            <Statistic
-              title="En Proceso"
-              value={data.processingBooks}
-              prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card loading={isLoading}>
-            <Statistic
-              title="Pendientes"
-              value={data.pendingBooks}
-              prefix={<ExclamationCircleOutlined />}
-              valueStyle={{ color: '#d9d9d9' }}
-            />
-          </Card>
-        </Col>
-
-        {/* Progreso de Procesamiento */}
-        <Col xs={24} md={12}>
-          <Card title="📊 Progreso de Procesamiento" loading={isLoading}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div>
-                <div style={{ marginBottom: 8 }}>
-                  <span>Libros Procesados</span>
-                  <span style={{ float: 'right' }}>
-                    {data.processedBooks}/{data.totalBooks}
-                  </span>
-                </div>
-                <Progress
-                  percent={data.totalBooks > 0 ? Math.round((data.processedBooks / data.totalBooks) * 100) : 0}
-                  status="active"
-                  strokeColor="#52c41a"
-                />
-              </div>
-            </Space>
-          </Card>
-        </Col>
-
-        {/* Dispositivos Activos */}
-        <Col xs={24} md={12}>
-          <Card title="🖥️ Dispositivos Activos" loading={isLoading}>
-            <Statistic
-              value={data.activeDevices}
-              suffix="/ 50"
-              valueStyle={{ color: '#1890ff' }}
+              suffix={`/ ${data.totalBooks}`}
+              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
             />
             <Progress
-              percent={Math.round((data.activeDevices / 50) * 100)}
+              percent={data.totalBooks > 0 ? Math.round((data.processedBooks / data.totalBooks) * 100) : 0}
+              status="active"
+              strokeColor="#52c41a"
               size="small"
-              style={{ marginTop: 16 }}
             />
           </Card>
         </Col>
-
-        {/* Tareas Completadas */}
-        <Col xs={24} md={12}>
-          <Card title="✅ Tareas Completadas" loading={isLoading}>
+        <Col xs={24} sm={8}>
+          <Card loading={isLoading}>
             <Statistic
-              value={data.completedTasks}
-              valueStyle={{ color: '#52c41a' }}
+              title="Libros Pendientes"
+              value={data.pendingBooks}
+              prefix={<ClockCircleOutlined style={{ color: '#fa8c16' }} />}
             />
+            <div style={{ marginTop: 8, fontSize: '12px', color: '#888' }}>
+              En cola de procesamiento
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card loading={isLoading}>
+            <Statistic
+              title="Tiempo Total Ejecución"
+              value={(data.agentStats?.totalExecutionTime / 60000).toFixed(1)}
+              suffix="min"
+              prefix={<RobotOutlined style={{ color: '#1890ff' }} />}
+            />
+            <div style={{ marginTop: 8, fontSize: '12px', color: '#888' }}>
+              Tiempo de cómputo de agentes
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+        {/* Brain Metrics */}
+        <Col xs={24} md={12} lg={8}>
+          <Card title="🧠 Nivel de Conocimiento (Brain IQ)" loading={isLoading} style={{ height: '100%' }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Statistic
+                  title="Nivel"
+                  value={data.brainMetrics?.level || 1}
+                  prefix="Lvl."
+                  valueStyle={{ color: '#722ed1', fontWeight: 'bold' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Score (XP)"
+                  value={data.brainMetrics?.score || 0}
+                  valueStyle={{ fontSize: '16px' }}
+                />
+              </Col>
+            </Row>
+            <div style={{ marginTop: 24 }}>
+              <Progress
+                percent={Math.min(100, ((data.brainMetrics?.score % 100) || 0))}
+                strokeColor={{ '0%': '#108ee9', '100%': '#87d068' }}
+                showInfo={false}
+              />
+              <div style={{ textAlign: 'right', fontSize: '12px', marginTop: 4, color: '#ccc' }}>
+                Próximo nivel: {((Math.floor((data.brainMetrics?.score || 0) / 100) + 1) * 100)} XP
+              </div>
+            </div>
           </Card>
         </Col>
 
-        {/* Salud del Sistema */}
-        <Col xs={24} md={12}>
-          <Card title="💚 Salud del Sistema" loading={isLoading}>
-            <Progress
-              type="circle"
-              percent={data.systemHealth}
-              format={(percent) => `${percent}%`}
-              strokeColor={{
-                '0%': '#108ee9',
-                '100%': '#87d068',
-              }}
+        {/* Content Stats */}
+        <Col xs={24} md={12} lg={8}>
+          <Card title="📚 Contenido Generado" loading={isLoading} style={{ height: '100%' }}>
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Statistic
+                  title="Citas Extraídas"
+                  value={data.contentStats?.quotes || 0}
+                  prefix={<SnippetsOutlined />}
+                  valueStyle={{ fontSize: '16px' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Resúmenes"
+                  value={data.contentStats?.summaries || 0}
+                  prefix={<FileTextOutlined />}
+                  valueStyle={{ fontSize: '16px' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Insights Clave"
+                  value={data.contentStats?.insights || 0}
+                  prefix={<BulbOutlined />}
+                  valueStyle={{ fontSize: '16px' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Total Cards"
+                  value={data.contentStats?.totalKnowledge || 0}
+                  valueStyle={{ fontSize: '16px', color: '#1890ff' }}
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+
+        {/* Agent Performance */}
+        <Col xs={24} lg={8}>
+          <Card title="🤖 Rendimiento de Agentes" loading={isLoading} style={{ height: '100%' }} styles={{ body: { padding: 0 } }}>
+            <Table
+              dataSource={data.agentStats?.breakdown || []}
+              columns={agentColumns}
+              pagination={false}
+              size="small"
+              rowKey="name"
             />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* System Health Row */}
+      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+        <Col xs={24}>
+          <Card size="small">
+            <Space split="|">
+              <Text type="secondary">System Status: <Tag color="success">Online</Tag></Text>
+              <Text type="secondary">Dispositivos Conectados: {data.activeDevices}</Text>
+              <Text type="secondary">Tareas Completadas: {data.completedTasks}</Text>
+              <Text type="secondary">Versión: v0.1.15</Text>
+            </Space>
           </Card>
         </Col>
       </Row>

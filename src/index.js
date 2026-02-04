@@ -14,51 +14,34 @@ import booksRoutes from './routes/books.routes.js'
 import llmRoutes from './routes/llm.routes.js'
 import agentsRoutes from './routes/agents.routes.js'
 import statsRoutes from './routes/stats.routes.js'
+import chatRoutes from './routes/chat.routes.js'
 
 // Importar middlewares
 import { getDevice, verifyHMAC, deviceRateLimit } from './middleware/auth.js'
 
-// Configuración ES6
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Cargar variables de entorno
-dotenv.config()
-
-// Inicializar Express
 const app = express()
 const PORT = process.env.PORT || 3467
 
-// Middlewares de seguridad y utilidad
+// Configuración básica
+app.use(cors())
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "frame-ancestors": ["'self'", "http://localhost:3465", "http://localhost:3466", "http://localhost:5173"]
-    }
-  }
+      defaultSrc: ["'self'"],
+      frameAncestors: ["'self'", "http://localhost:3465", "http://localhost:3466", "https:", "http:"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }))
+app.use(morgan('dev'))
 app.use(compression())
-app.use(morgan('combined'))
-app.use(cors({
-  origin: [
-    'http://localhost:4123',
-    'http://localhost:4124',
-    'http://localhost:3466', // MAIN Dashboard
-    'http://localhost:3465', // DEV Dashboard
-    'http://localhost:3467', // MAIN API
-    'http://localhost:5173'
-  ],
-  credentials: true
-}))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Parser de body
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-
-// Servir archivos estáticos (para uploads, libros, etc.)
-app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')))
-app.use('/data/books', express.static(path.join(__dirname, '../data/books')))
+// Configurar directorio estático
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+app.use(express.static(path.join(__dirname, '../public')))
 
 // Rutas API
 app.use('/api/devices', devicesRoutes)
@@ -67,6 +50,7 @@ app.use('/api/books', booksRoutes)
 app.use('/api/llm', llmRoutes)
 app.use('/api/agents', agentsRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/chat', chatRoutes)
 
 // Rutas que requieren autenticación de dispositivo
 app.use('/api/devices', deviceRateLimit())
