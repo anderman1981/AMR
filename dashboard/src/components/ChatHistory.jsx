@@ -2,8 +2,6 @@ import React from 'react'
 import { Card, List, Typography, Space, Tag } from 'antd'
 import { MessageOutlined, ClockCircleOutlined } from '@ant-design/icons'
 
-const { Text, Title } = Typography
-
 import { useQuery } from 'react-query'
 import * as chatService from '../services/chat'
 import dayjs from 'dayjs'
