@@ -94,6 +94,44 @@ function Dashboard() {
           </Card>
         </Col>
 
+        {/* Brain Metrics */}
+        <Col xs={24} md={12}>
+          <Card title="🧠 Nivel de Conocimiento (Brain IQ)" loading={isLoading}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Statistic
+                  title="Nivel"
+                  value={data.brainMetrics?.level || 1}
+                  prefix="Lvl."
+                  valueStyle={{ color: '#722ed1', fontWeight: 'bold' }}
+                />
+              </Col>
+              <Col span={12}>
+                <Statistic
+                  title="Score (XP)"
+                  value={data.brainMetrics?.score || 0}
+                  valueStyle={{ fontSize: '16px' }}
+                />
+              </Col>
+            </Row>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#888' }}>
+                <span>Insights: {data.brainMetrics?.totalCards || 0}</span>
+                <span>Interacciones: {data.brainMetrics?.totalInteractions || 0}</span>
+              </div>
+              <Progress
+                percent={Math.min(100, ((data.brainMetrics?.score % 100) || 0))}
+                strokeColor={{ '0%': '#108ee9', '100%': '#87d068' }}
+                showInfo={false}
+                size="small"
+              />
+              <div style={{ textAlign: 'right', fontSize: '10px', color: '#ccc' }}>
+                Próximo nivel: {((Math.floor((data.brainMetrics?.score || 0) / 100) + 1) * 100)} XP
+              </div>
+            </div>
+          </Card>
+        </Col>
+
         {/* Progreso de Procesamiento */}
         <Col xs={24} md={12}>
           <Card title="📊 Progreso de Procesamiento" loading={isLoading}>
