@@ -31,6 +31,8 @@ function Dashboard() {
   //   }
   // }, [])
 
+  const [currentChatId, setCurrentChatId] = useState(null)
+
   // Fallback defaults
   const data = stats || {
     totalBooks: 0,
@@ -53,13 +55,20 @@ function Dashboard() {
         {/* Global Coach Chat - Full Width or Large Column */}
         <Col xs={24} lg={16}>
           <div data-tour="chat-coach">
-            <GlobalChat />
+            <GlobalChat
+              currentChatId={currentChatId}
+              onNewChat={() => setCurrentChatId(null)}
+              onChatCreated={(id) => setCurrentChatId(id)}
+            />
           </div>
         </Col>
 
         {/* Stats/History Column */}
         <Col xs={24} lg={8}>
-          <ChatHistory />
+          <ChatHistory
+            onSelectSession={setCurrentChatId}
+            selectedSessionId={currentChatId}
+          />
         </Col>
 
         {/* Additional Stats Row */}

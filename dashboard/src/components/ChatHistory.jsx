@@ -4,16 +4,20 @@ import { MessageOutlined, ClockCircleOutlined } from '@ant-design/icons'
 
 const { Text, Title } = Typography
 
-// Mock Data for MVP (To be replaced with real backend data or localStorage)
-const MOCK_HISTORY = [
-    { id: 1, title: 'Resumen de "Deep Work"', date: 'Hace 2 horas', type: 'summary' },
-    { id: 2, title: 'Conceptos clave de Psicología', date: 'Ayer', type: 'concept' },
-    { id: 3, title: 'Plan de acción basado en Hábitos Atómicos', date: 'Hace 2 días', type: 'action' },
-    { id: 4, title: 'Análisis de "Thinking Fast and Slow"', date: 'Hace 3 días', type: 'analysis' },
-    { id: 5, title: 'Ideas para mejorar la concentración', date: 'Hace 1 semana', type: 'idea' }
-]
+import { useQuery } from 'react-query'
+import * as chatService from '../services/chat'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/es'
 
-function ChatHistory() {
+dayjs.extend(relativeTime)
+dayjs.locale('es')
+
+const { Text, Title } = Typography
+
+function ChatHistory({ onSelectSession, selectedSessionId }) {
+    const { data: sessions, isLoading } = useQuery('chat-sessions', chatService.getChatSessions)
+
     return (
         <Card
             title={
@@ -23,34 +27,37 @@ function ChatHistory() {
                 </Space>
             }
             style={{ height: '100%', minHeight: '400px' }}
-            bodyStyle={{ padding: '0 12px' }}
+            bodyStyle={{ padding: '0 12px', overflowY: 'auto', maxHeight: '600px' }}
         >
             <List
                 itemLayout="horizontal"
-                dataSource={MOCK_HISTORY}
+                dataSource={sessions || []}
+                loading={isLoading}
                 renderItem={item => (
                     <List.Item
                         style={{
                             cursor: 'pointer',
                             padding: '12px 8px',
                             transition: 'background 0.3s',
-                            borderRadius: '8px'
+                            borderRadius: '8px',
+                            backgroundColor: selectedSessionId === item.id ? '#e6f7ff' : 'transparent'
                         }}
                         className="chat-history-item"
+                        onClick={() => onSelectSession(item.id)}
                     >
                         <List.Item.Meta
                             avatar={
                                 <div style={{
-                                    backgroundColor: '#e6f7ff',
+                                    backgroundColor: selectedSessionId === item.id ? '#1890ff' : '#f0f2f5',
                                     padding: '8px',
                                     borderRadius: '50%',
-                                    color: '#1890ff'
+                                    color: selectedSessionId === item.id ? '#fff' : '#1890ff'
                                 }}>
                                     <MessageOutlined />
                                 </div>
                             }
                             title={
-                                <Text strong style={{ fontSize: '14px' }}>
+                                <Text strong={selectedSessionId === item.id} style={{ fontSize: '14px' }}>
                                     {item.title}
                                 </Text>
                             }
@@ -58,7 +65,7 @@ function ChatHistory() {
                                 <Space size="small">
                                     <ClockCircleOutlined style={{ fontSize: '12px' }} />
                                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                                        {item.date}
+                                        {dayjs(item.updated_at).fromNow()}
                                     </Text>
                                 </Space>
                             }

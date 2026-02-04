@@ -47,11 +47,31 @@ async function callLLM(messages) {
 // POST /api/chat/global
 router.post('/global', async (req, res) => {
   try {
-    const { message, history = [] } = req.body
+    const { message, history = [], chatId } = req.body
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' })
     }
+
+    // 0. Manage Session (Create or Retrieve)
+    let currentChatId = chatId
+    if (!currentChatId) {
+      const chatTitle = message.length > 50 ? message.substring(0, 50) + '...' : message
+      const chatResult = await query(
+        'INSERT INTO global_chats (title) VALUES ($1) RETURNING id',
+        [chatTitle]
+      )
+      currentChatId = chatResult.insertId // For SQLite with better-sqlite3 wrapper
+    } else {
+        // Update updated_at
+        await query('UPDATE global_chats SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [currentChatId])
+    }
+
+    // Save User Message
+    await query(
+        'INSERT INTO global_chat_messages (chat_id, role, content) VALUES ($1, $2, $3)',
+        [currentChatId, 'user', message]
+    )
 
     // 1. Search for relevant context (RAG-lite)
     const keywords = message.split(' ').filter(w => w.length > 4)
@@ -115,9 +135,16 @@ router.post('/global', async (req, res) => {
     // 4. Call LLM
     const coachResponse = await callLLM(messages)
 
+    // Save Assistant Message
+    await query(
+        'INSERT INTO global_chat_messages (chat_id, role, content) VALUES ($1, $2, $3)',
+        [currentChatId, 'assistant', coachResponse]
+    )
+
     res.json({
       role: 'assistant',
       content: coachResponse,
+      chatId: currentChatId,
       context_used: dbContext.length // debugging info
     })
 
@@ -125,6 +152,29 @@ router.post('/global', async (req, res) => {
     console.error('Global Chat Error:', error)
     res.status(500).json({ error: 'Error processing your request' })
   }
+})
+
+// GET /api/chat/sessions
+router.get('/sessions', async (req, res) => {
+    try {
+        const result = await query('SELECT * FROM global_chats ORDER BY updated_at DESC')
+        res.json(result.rows)
+    } catch (error) {
+        console.error('Error fetching sessions:', error)
+        res.status(500).json({ error: 'Failed to fetch chat history' })
+    }
+})
+
+// GET /api/chat/sessions/:id/messages
+router.get('/sessions/:id/messages', async (req, res) => {
+    try {
+        const { id } = req.params
+        const result = await query('SELECT role, content FROM global_chat_messages WHERE chat_id = $1 ORDER BY created_at ASC', [id])
+        res.json(result.rows)
+    } catch (error) {
+        console.error('Error fetching messages:', error)
+        res.status(500).json({ error: 'Failed to fetch messages' })
+    }
 })
 
 export default router

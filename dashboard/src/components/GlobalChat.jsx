@@ -4,9 +4,11 @@ import { SendOutlined, RobotOutlined, UserOutlined, BulbOutlined, BookOutlined }
 import ReactMarkdown from 'react-markdown'
 import * as chatService from '../services/chat'
 
+import { useQueryClient } from 'react-query'
+
 const { Text, Title } = Typography
 
-function GlobalChat() {
+function GlobalChat({ currentChatId, onNewChat, onChatCreated }) {
     const [input, setInput] = useState('')
     const [messages, setMessages] = useState([
         {
@@ -16,10 +18,39 @@ function GlobalChat() {
     ])
     const [isLoading, setIsLoading] = useState(false)
     const messagesEndRef = useRef(null)
+    const queryClient = useQueryClient()
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
+
+    // Load messages when chat changes
+    useEffect(() => {
+        const loadHistory = async () => {
+            if (currentChatId) {
+                try {
+                    setIsLoading(true)
+                    const history = await chatService.getChatMessages(currentChatId)
+                    if (history && history.length > 0) {
+                        setMessages(history)
+                    } else {
+                        // Keep default greeting if empty (shouldn't happen for persisted chats)
+                    }
+                } catch (error) {
+                    console.error('Error loading chat:', error)
+                } finally {
+                    setIsLoading(false)
+                }
+            } else {
+                // Reset to default greeting for new chat
+                setMessages([{
+                    role: 'assistant',
+                    content: 'Hola, soy tu Coach de Productividad. ¿En qué desafío estás trabajando hoy? Puedo ayudarte conectando tus objetivos con el conocimiento de tu biblioteca.'
+                }])
+            }
+        }
+        loadHistory()
+    }, [currentChatId])
 
     useEffect(() => {
         scrollToBottom()
@@ -37,7 +68,15 @@ function GlobalChat() {
             // Prepare history for context (exclude initial greeting if generic)
             const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
 
-            const response = await chatService.sendGlobalMessage(userMessage.content, history)
+            const response = await chatService.sendGlobalMessage(userMessage.content, history, currentChatId)
+
+            if (!currentChatId && response.chatId) {
+                onChatCreated(response.chatId)
+                queryClient.invalidateQueries('chat-sessions')
+            } else if (currentChatId) {
+                // Refresh sessions list to update timestamps/order
+                queryClient.invalidateQueries('chat-sessions')
+            }
 
             setMessages(prev => [...prev, {
                 role: 'assistant',
@@ -66,7 +105,14 @@ function GlobalChat() {
                 </Space>
             }
             extra={
-                <Tag color="blue">RICE & OKR Enabled</Tag>
+                <Space>
+                    {currentChatId && (
+                        <Button type="dashed" size="small" onClick={onNewChat}>
+                            Nuevo Chat
+                        </Button>
+                    )}
+                    <Tag color="blue">RICE & OKR Enabled</Tag>
+                </Space>
             }
             className="global-chat-card"
             style={{

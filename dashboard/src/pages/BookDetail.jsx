@@ -350,7 +350,7 @@ function BookDetail() {
                                                     size="small"
                                                     type="dashed"
                                                     icon={<RobotOutlined />}
-                                                    disabled={!!book?.active_task_id}
+                                                    disabled={book?.active_task_type === 'phrases'}
                                                     onClick={() => handleTriggerAgent('phrases')}
                                                 >
                                                     {book?.active_task_type === 'phrases' && book?.active_task_progress !== null
