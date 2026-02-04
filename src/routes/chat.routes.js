@@ -51,21 +51,21 @@ router.post('/global', async (req, res) => {
     }
 
     // 1. Search for relevant context (RAG-lite)
-    // Simple text match on book_cards columns
+    // Simple text match on generated_cards columns
     const searchTerms = message.split(' ').filter(term => term.length > 3).join(' OR ')
     
-    // Perform a search in book_cards (summaries, key points, quotes)
+    // Perform a search in generated_cards (summaries, key points, quotes)
     // Note: SQLite full-text search would be better, but simple LIKE/OR works for "lite" version
     const contextQuery = `
       SELECT 
         b.name as book_title, 
-        bc.type, 
-        bc.content 
-      FROM book_cards bc
-      JOIN books b ON bc.book_id = b.id
+        gc.type, 
+        gc.content 
+      FROM generated_cards gc
+      JOIN books b ON gc.book_id = b.id
       WHERE 
-        bc.content LIKE $1 OR 
-        bc.content LIKE $2 OR
+        gc.content LIKE $1 OR 
+        gc.content LIKE $2 OR
         b.name LIKE $3
       ORDER BY RANDOM() 
       LIMIT 10
@@ -88,10 +88,10 @@ router.post('/global', async (req, res) => {
         const keyword2 = keywords.length > 1 ? `%${keywords[1]}%` : keyword1
         
         const results = await query(`
-            SELECT b.name as book_title, bc.type, bc.content
-            FROM book_cards bc
-            JOIN books b ON bc.book_id = b.id
-            WHERE bc.content LIKE $1 OR bc.content LIKE $2
+            SELECT b.name as book_title, gc.type, gc.content
+            FROM generated_cards gc
+            JOIN books b ON gc.book_id = b.id
+            WHERE gc.content LIKE $1 OR gc.content LIKE $2
             LIMIT 15
         `, [keyword1, keyword2])
         
@@ -99,10 +99,10 @@ router.post('/global', async (req, res) => {
     } else {
         // Broad search / Random useful context
         const results = await query(`
-            SELECT b.name as book_title, bc.type, bc.content
-            FROM book_cards bc
-            JOIN books b ON bc.book_id = b.id
-            WHERE bc.type = 'summary' OR bc.type = 'key_points'
+            SELECT b.name as book_title, gc.type, gc.content
+            FROM generated_cards gc
+            JOIN books b ON gc.book_id = b.id
+            WHERE gc.type = 'summary' OR gc.type = 'key_points'
             ORDER BY RANDOM()
             LIMIT 5
         `)
@@ -116,7 +116,7 @@ router.post('/global', async (req, res) => {
     // 2. Construct System Context
     let contextString = "INFORMACIÓN DE LA BIBLIOTECA:\n"
     if (dbContext.length > 0) {
-        contextString += dbContext.map(row => `[LIBRO: ${row.book_title} (${row.type} তিনিও]: ${row.content}`).join('\n\n')
+        contextString += dbContext.map(row => `[LIBRO: ${row.book_title} (${row.type})]: ${row.content}`).join('\n\n')
     } else {
         contextString += "No se encontraron fragmentos específicos que coincidan exactamente con las palabras clave, pero tienes acceso a la lista de libros."
     }

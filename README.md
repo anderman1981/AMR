@@ -1,6 +1,78 @@
-# AMROIS - Sistema Maestro de Orquestación
+# AMROIS - Sistema de Gestión Inteligente de Biblioteca Personal
 
-Sistema distribuido para orquestación de agentes inteligentes con procesamiento de libros y dispositivos Windows.
+**Plataforma de biblioteca personal con IA** que transforma libros digitales en conocimiento accionable.
+
+[![Status](https://img.shields.io/badge/Status-MVP%20Funcional%20(62%25)-yellow)](./docs/PROJECT_STATUS.md)
+[![Tech Stack](https://img.shields.io/badge/Tech-Node.js%20%7C%20React%20%7C%20Ollama-blue)](#)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+
+---
+
+## 🎯 Estado del Proyecto
+
+**Completitud**: 62% (MVP Funcional → Producto Comercial)  
+**Última Actualización**: 2026-02-03
+
+| Pilar | Score | Estado |
+|-------|-------|--------|
+| Tech Stack & Infrastructure | 85% | ✅ Excelente |
+| Features & Funcionalidad | 60% | ⚠️ Core completo |
+| UX/UI & Product Experience | 45% | ⚠️ Mejorado (Fase 1) |
+| Go-to-Market Readiness | 25% | ❌ Crítico |
+| Monetización & Business Model | 40% | ⚠️ Planeado |
+
+📊 **Ver detalles completos**: [`docs/PROJECT_STATUS.md`](./docs/PROJECT_STATUS.md)
+
+---
+
+## ✨ Funcionalidades Principales
+
+### 📚 Gestión de Libros
+- Soporte multi-formato (PDF, EPUB, MOBI, TXT, DOCX)
+- Escaneo automático de directorios
+- Visualizador integrado de documentos
+
+### 🤖 Análisis Inteligente con IA
+- **Resúmenes automáticos**: Análisis estructural de cada libro
+- **Extracción de insights**: Ideas clave y tareas accionables
+- **Generación de citas**: Mejores frases para compartir
+- **Formularios interactivos**: Detección de ejercicios/cuestionarios
+
+### 💬 Coach Literario AI
+- **Chat por libro**: Conversa con coach especializado
+- **Chat global**: Consulta toda tu biblioteca simultáneamente
+- **Búsqueda contextual (RAG)**: Respuestas basadas en contenido real
+- **Recomendaciones personalizadas**: Sugerencias según objetivos
+
+### 🔧 Sistema Multi-Agente
+- Agentes especializados procesan libros en background
+- Cola de tareas para procesamiento asíncrono
+- Monitoreo en tiempo real del progreso
+- Arquitectura escalable
+
+---
+
+## 📚 Documentación
+
+### Para Empezar
+- **[Instalación macOS](./docs/macos-setup.md)** - Guía de instalación paso a paso
+- **[Guía del Sistema](./docs/SYSTEM_GUIDE.md)** - Cómo usar AMROIS
+
+### Business & Producto
+- **[📊 Estado del Proyecto](./docs/PROJECT_STATUS.md)** - Estado consolidado (LEER PRIMERO)
+- **[💼 Investor Pitch](./docs/AMROIS_Investor_Pitch.docx)** - Pitch deck completo
+- **[📈 Análisis de Viabilidad](./docs/AMROIS_Analisis_Viabilidad_Comercial.docx)** - Mercado y competencia
+- **[🛠️ Plan de Mejora](./docs/AMROIS_Plan_de_Mejora_Detallado.docx)** - Roadmap UX/UI
+
+### Técnico
+- **[📦 Product Overview](./PRODUCT_OVERVIEW.md)** - Overview técnico completo
+- **[✅ Fase 1 Implementada](./docs/PHASE1_IMPLEMENTATION.md)** - Mejoras UX críticas
+- **[🗺️ Plan 12 Semanas](./.gemini/antigravity/brain/.../implementation_plan.md)** - Roadmap detallado
+
+### Índice Completo
+📖 **[Ver toda la documentación](./docs/README.md)**
+
+---
 
 ## 🚀 Inicio Rápido
 

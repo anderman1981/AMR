@@ -571,7 +571,8 @@ router.post('/:id/chat', async (req, res) => {
         'INSERT INTO book_chats (book_id, title) VALUES ($1, $2) RETURNING id',
         [id, message.substring(0, 50) + (message.length > 50 ? '...' : '')]
       )
-      chatId = chatResult.rows[0].id
+      // SQLite returns insertId, not rows
+      chatId = chatResult.insertId
     }
 
     // Save user message

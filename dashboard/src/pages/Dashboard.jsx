@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { statsService } from '../services/stats'
 import { Card, Row, Col, Statistic, Progress, Typography, Space } from 'antd'
@@ -9,13 +9,26 @@ import {
   ExclamationCircleOutlined
 } from '@ant-design/icons'
 import GlobalChat from '../components/GlobalChat'
+// import OnboardingTour from '../components/OnboardingTour' // TODO: Uncomment after installing react-joyride
 
 const { Title } = Typography
 
 function Dashboard() {
+  const [runTour, setRunTour] = useState(false)
+
   const { data: stats, isLoading } = useQuery('system-stats', statsService.getSystemStats, {
     refetchInterval: 30000 // Refresh every 30s
   })
+
+  // Check if first-time user
+  // TODO: Uncomment after installing react-joyride
+  // useEffect(() => {
+  //   const hasCompletedOnboarding = localStorage.getItem('onboarding_completed')
+  //   if (!hasCompletedOnboarding) {
+  //     // Delay tour start to let page render
+  //     setTimeout(() => setRunTour(true), 1000)
+  //   }
+  // }, [])
 
   // Fallback defaults
   const data = stats || {
@@ -30,12 +43,17 @@ function Dashboard() {
 
   return (
     <div>
+      {/* TODO: Uncomment after installing react-joyride */}
+      {/* <OnboardingTour run={runTour} onFinish={() => setRunTour(false)} /> */}
+
       <Title level={2}>🎯 AMROIS Dashboard</Title>
 
       <Row gutter={[16, 16]}>
         {/* Global Coach Chat - Full Width or Large Column */}
         <Col xs={24} lg={16}>
-           <GlobalChat />
+          <div data-tour="chat-coach">
+            <GlobalChat />
+          </div>
         </Col>
 
         {/* Stats Column */}
@@ -81,7 +99,7 @@ function Dashboard() {
                       '0%': '#108ee9',
                       '100%': '#87d068',
                     }}
-                    width={80}
+                    size={80}
                   />
                 </div>
               </Card>

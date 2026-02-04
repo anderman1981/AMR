@@ -19,7 +19,21 @@ import chatRoutes from './routes/chat.routes.js'
 // Importar middlewares
 import { getDevice, verifyHMAC, deviceRateLimit } from './middleware/auth.js'
 
-// ...
+const app = express()
+const PORT = process.env.PORT || 3467
+
+// Configuración básica
+app.use(cors())
+app.use(helmet())
+app.use(morgan('dev'))
+app.use(compression())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+// Configurar directorio estático
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+app.use(express.static(path.join(__dirname, '../public')))
 
 // Rutas API
 app.use('/api/devices', devicesRoutes)

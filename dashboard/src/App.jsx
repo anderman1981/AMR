@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Layout } from 'antd'
+import { Layout, ConfigProvider, theme } from 'antd'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
@@ -14,24 +14,52 @@ import Settings from './pages/Settings'
 const { Content } = Layout
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('darkMode')
+    if (savedTheme) {
+      setDarkMode(savedTheme === 'true')
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const newMode = !darkMode
+    setDarkMode(newMode)
+    localStorage.setItem('darkMode', newMode.toString())
+  }
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sidebar />
-      <Layout>
-        <Navbar />
-        <Content style={{ padding: '24px' }}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/books" element={<Books />} />
-            <Route path="/books/:id" element={<BookDetail />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/devices" element={<Devices />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Content>
+    <ConfigProvider
+      theme={{
+        algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#1890ff',
+        },
+      }}
+    >
+      <Layout style={{ minHeight: '100vh' }}>
+        <Sidebar darkMode={darkMode} />
+        <Layout>
+          <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
+          <Content style={{
+            padding: '24px',
+            background: darkMode ? '#141414' : '#f0f2f5',
+            transition: 'all 0.2s'
+          }}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/books" element={<Books />} />
+              <Route path="/books/:id" element={<BookDetail />} />
+              <Route path="/agents" element={<Agents />} />
+              <Route path="/devices" element={<Devices />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </ConfigProvider>
   )
 }
 

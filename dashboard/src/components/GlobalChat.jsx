@@ -150,6 +150,49 @@ function GlobalChat() {
                 <div ref={messagesEndRef} />
             </div>
 
+            {/* Suggested Questions */}
+            {messages.length <= 2 && (
+                <div style={{
+                    padding: '12px 20px',
+                    background: '#f0f2f5',
+                    borderTop: '1px solid #e8e8e8'
+                }}>
+                    <Text type="secondary" style={{ fontSize: '12px', marginBottom: '8px', display: 'block' }}>
+                        💡 Preguntas sugeridas:
+                    </Text>
+                    <Space wrap>
+                        <Tag
+                            color="blue"
+                            style={{ cursor: 'pointer', padding: '4px 12px' }}
+                            onClick={() => setInput('¿Qué libros de productividad tienes?')}
+                        >
+                            ¿Qué libros de productividad tienes?
+                        </Tag>
+                        <Tag
+                            color="blue"
+                            style={{ cursor: 'pointer', padding: '4px 12px' }}
+                            onClick={() => setInput('Resume el libro más reciente')}
+                        >
+                            Resume el libro más reciente
+                        </Tag>
+                        <Tag
+                            color="blue"
+                            style={{ cursor: 'pointer', padding: '4px 12px' }}
+                            onClick={() => setInput('¿Qué ejercicios prácticos hay en mis libros?')}
+                        >
+                            ¿Qué ejercicios prácticos hay?
+                        </Tag>
+                        <Tag
+                            color="blue"
+                            style={{ cursor: 'pointer', padding: '4px 12px' }}
+                            onClick={() => setInput('Dame ideas para aplicar lo que he leído')}
+                        >
+                            Ideas para aplicar lo leído
+                        </Tag>
+                    </Space>
+                </div>
+            )}
+
             {/* Input Area */}
             <div style={{
                 padding: '16px',

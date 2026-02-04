@@ -6,6 +6,7 @@ import { useQuery } from 'react-query'
 import ReactMarkdown from 'react-markdown'
 import * as booksService from '../services/books'
 import BookForms from '../components/BookForms'
+import { downloadMarkdown } from '../utils/export'
 
 const { Header, Content } = Layout
 const { Title, Text } = Typography
@@ -118,6 +119,13 @@ function BookDetail() {
         }
     }
 
+    // Export Handler
+    const handleExport = () => {
+        if (!book) return
+        downloadMarkdown(book, bookCards || [])
+        antdMessage.success('Exportación iniciada')
+    }
+
     // Auto-scroll chat to bottom
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -177,8 +185,9 @@ function BookDetail() {
         )
     }
 
-    // Build the PDF URL using the relative data path (handled by Vite proxy in dev, or same host in prod)
-    const pdfUrl = `/data/books/${encodeURIComponent(book.filename || '')}`
+    // Use the API endpoint to serve the PDF file
+    const pdfUrl = `http://localhost:3464/api/books/${id}/raw`
+
 
     // Organize data for the 3 sections
     const summaries = bookCards?.filter(c => c.type === 'summary') || []
