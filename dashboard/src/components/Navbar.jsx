@@ -2,10 +2,13 @@ import React from 'react'
 import { Layout, Typography, Space, Avatar, Switch } from 'antd'
 import { UserOutlined, BellOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons'
 
+import { useLanguage } from '../contexts/LanguageContext'
+
 const { Header } = Layout
 const { Title } = Typography
 
 function Navbar({ darkMode, toggleTheme }) {
+  const { language, changeLanguage, t } = useLanguage()
   return (
     <Header style={{
       background: darkMode ? '#001529' : '#fff',
@@ -21,6 +24,12 @@ function Navbar({ darkMode, toggleTheme }) {
       </Title>
 
       <Space size="middle">
+        <Typography.Text
+          onClick={() => changeLanguage(language === 'es' ? 'en' : 'es')}
+          style={{ cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          {language.toUpperCase()}
+        </Typography.Text>
         <Switch
           checked={darkMode}
           onChange={toggleTheme}

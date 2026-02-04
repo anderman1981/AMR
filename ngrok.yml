@@ -1,0 +1,15 @@
+version: "2"
+authtoken: ${NGROK_AUTHTOKEN}
+tunnels:
+  dashboard:
+    proto: http
+    addr: 3465
+    schemes: [https]
+  api:
+    proto: http
+    addr: 3467
+    schemes: [https]
+  agents:
+    proto: http
+    addr: 12000
+    schemes: [https]

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Layout, ConfigProvider, theme } from 'antd'
+import { Layout, ConfigProvider, theme, App as AntdApp } from 'antd'
 import Navbar from './components/Navbar'
+import { LanguageProvider } from './contexts/LanguageContext'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Books from './pages/Books'
@@ -30,36 +31,40 @@ function App() {
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#1890ff',
-        },
-      }}
-    >
-      <Layout style={{ minHeight: '100vh' }}>
-        <Sidebar darkMode={darkMode} />
-        <Layout>
-          <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
-          <Content style={{
-            padding: '24px',
-            background: darkMode ? '#141414' : '#f0f2f5',
-            transition: 'all 0.2s'
-          }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/books" element={<Books />} />
-              <Route path="/books/:id" element={<BookDetail />} />
-              <Route path="/agents" element={<Agents />} />
-              <Route path="/devices" element={<Devices />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Content>
-        </Layout>
-      </Layout>
-    </ConfigProvider>
+    <LanguageProvider>
+      <ConfigProvider
+        theme={{
+          algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+          token: {
+            colorPrimary: '#1890ff',
+          },
+        }}
+      >
+        <AntdApp>
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sidebar darkMode={darkMode} />
+            <Layout>
+              <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
+              <Content style={{
+                padding: '24px',
+                background: darkMode ? '#141414' : '#f0f2f5',
+                transition: 'all 0.2s'
+              }}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/books" element={<Books />} />
+                  <Route path="/books/:id" element={<BookDetail />} />
+                  <Route path="/agents" element={<Agents />} />
+                  <Route path="/devices" element={<Devices />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </Content>
+            </Layout>
+          </Layout>
+        </AntdApp>
+      </ConfigProvider>
+    </LanguageProvider>
   )
 }
 

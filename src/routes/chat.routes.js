@@ -6,24 +6,27 @@ const router = express.Router()
 
 // System Prompt for the Coach
 const COACH_SYSTEM_PROMPT = `
-Eres mi analista literario y mentor de aprendizaje experto. Antes de responder, haz las preguntas necesarias para entender mi objetivo con este libro (ej. aprender una habilidad, entretenimiento o investigación).
+Eres mi analista literario y mentor de aprendizaje experto. Tu conocimiento principal proviene EXCLUSIVAMENTE de la "BIBLIOTECA LOCAL" del usuario.
 
-INSTRUCCIONES:
-1.  **Analiza** la pregunta del usuario y busca conexiones con los libros del contexto proporcionado.
-2.  **Responde** usando un lenguaje natural, empático y orientado a la acción (Mentor).
-3.  **Cita las fuentes**: Siempre menciona qué libro o autor respalda tu consejo si la información viene del contexto.
-4.  **Estructura de Respuesta**:
-    *   **Ideas Centrales**: Extrae modelos mentales y argumentos clave.
-    *   **Análisis Cruzado**: Cruza conceptos de psicología, historia, sociología y lógica.
-    *   **Simplicidad (Feynman)**: Explica como si tuviera 12 años (Técnica Feynman) y usa Pensamiento de Primeros Principios.
-    *   **Contraste**: Contrasta los puntos de vista del autor con argumentos opuestos cuando sea relevante.
-    *   **Acciones Prácticas**: Termina SIEMPRE con una lista de pasos aplicables a la vida diaria.
-5.  **Si NO tienes información suficiente**:
-    *   No inventes información sobre libros que no tienes.
-    *   Sugiere revisar "Títulos Disponibles" relevantes.
+REGLAS DE ORO (PRIORIDAD ALTA):
+1.  **VALIDACIÓN DE RECURSOS**:
+    *   Antes de responder, VERIFICA si el libro o tema está en la lista "TÍTULOS DISPONIBLES EN BIBLIOTECA".
+    *   Si el usuario pregunta por un libro que **NO** está en la lista: DEBES decir explícitamente: "⚠️ No cuento con el recurso [Nombre del Libro] en tu biblioteca local (Formatos soportados: PDF, EPUB, etc.). Realizaré la búsqueda usando mi conocimiento general."
+    *   Si el libro **SÍ** está: Úsalo como fuente primaria y cita el formato (ej. "Según tu PDF de...").
+
+2.  **JERARQUÍA DE RESPUESTA**:
+    *   Nivel 1 (Prioritario): Información directa de los "FRAGMENTOS DE CONTEXTO" proporcionados.
+    *   Nivel 2 (Secundario): Información general sobre los "TÍTULOS DISPONIBLES" (si no hay fragmentos exactos).
+    *   Nivel 3 (Fallback): Conocimiento general SOLO si se activó el aviso de "Recurso no encontrado".
+
+INSTRUCCIONES DE MENTOR:
+1.  **Analiza** la pregunta buscando conexiones con tu biblioteca real.
+2.  **Responde** con lenguaje natural y orientado a la acción.
+3.  **Cita las fuentes**: Menciona el libro exacto de tu biblioteca.
+4.  **Estructura**: Ideas Centrales -> Análisis Cruzado -> Acciones Prácticas.
 
 TONO:
-"Usa un lenguaje natural, analogías claras y resúmenes en bullet points. Pregunta al final si necesito profundizar en algún concepto."
+"Empático, riguroso con las fuentes locales, pero servicial. Si no lo tienes, avisa honestamente y luego ayuda con lo que sepas."
 `
 
 // Helper to call LLM (Ollama)
@@ -51,39 +54,10 @@ router.post('/global', async (req, res) => {
     }
 
     // 1. Search for relevant context (RAG-lite)
-    // Simple text match on generated_cards columns
-    const searchTerms = message.split(' ').filter(term => term.length > 3).join(' OR ')
-    
-    // Perform a search in generated_cards (summaries, key points, quotes)
-    // Note: SQLite full-text search would be better, but simple LIKE/OR works for "lite" version
-    const contextQuery = `
-      SELECT 
-        b.name as book_title, 
-        gc.type, 
-        gc.content 
-      FROM generated_cards gc
-      JOIN books b ON gc.book_id = b.id
-      WHERE 
-        gc.content LIKE $1 OR 
-        gc.content LIKE $2 OR
-        b.name LIKE $3
-      ORDER BY RANDOM() 
-      LIMIT 10
-    `
-    // Simple parameterized query (using the full message for broad context finding - simplified)
-    // improved logic: search for keywords
-    // For MVP, we pass the message as a broad LIKE parameter. 
-    // Ideally we'd loop keywords, but let's try a direct broad match first or fallback to random insights if empty
-    
     const keywords = message.split(' ').filter(w => w.length > 4)
     let dbContext = []
     
     if (keywords.length > 0) {
-        // Construct a dynamic query safely? 
-        // Let's stick to a simpler approach: Get ALL Book Cards and filter in memory if DB is small, 
-        // OR better: Just get summary/key_points types for ALL processed books to give "General Knowledge"
-        // Let's search for just the first 2 keywords to find relevant clips
-        
         const keyword1 = `%${keywords[0]}%`
         const keyword2 = keywords.length > 1 ? `%${keywords[1]}%` : keyword1
         
@@ -109,22 +83,27 @@ router.post('/global', async (req, res) => {
         dbContext = results.rows
     }
 
-    // Get list of all available books for recommendations
-    const allBooksResult = await query('SELECT name, status FROM books ORDER BY name ASC')
-    const availableTitles = allBooksResult.rows.map(b => `- ${b.name} (${b.status === 'processed' ? 'Leído' : 'No leído'})`).join('\n')
+    // 1.5 Get Enhanced Book List (Include Formats)
+    // Fetch name, format, status to inform LLM of exactly what is available
+    const allBooksResult = await query('SELECT name, format, status FROM books ORDER BY name ASC')
+    const availableTitles = allBooksResult.rows.map(b => {
+        const fmt = b.format ? b.format.toUpperCase() : 'N/A'
+        const stat = b.status === 'processed' ? '✅ Digitalizado' : '⏳ Pendiente'
+        return `- ${b.name} [${fmt}] (${stat})`
+    }).join('\n')
 
     // 2. Construct System Context
-    let contextString = "INFORMACIÓN DE LA BIBLIOTECA:\n"
-    if (dbContext.length > 0) {
-        contextString += dbContext.map(row => `[LIBRO: ${row.book_title} (${row.type})]: ${row.content}`).join('\n\n')
-    } else {
-        contextString += "No se encontraron fragmentos específicos que coincidan exactamente con las palabras clave, pero tienes acceso a la lista de libros."
-    }
+    let contextString = "=== INVENTARIO DE BIBLIOTECA ===\n"
+    contextString += availableTitles
+    contextString += "\n\n=== FRAGMENTOS DE CONTEXTO (RAG) ===\n"
     
-    contextString += `\n\nTÍTULOS DISPONIBLES EN BIBLIOTECA:\n${availableTitles}`
+    if (dbContext.length > 0) {
+        contextString += dbContext.map(row => `[FUENTE: ${row.book_title} | TIPO: ${row.type}]: ${row.content}`).join('\n\n')
+    } else {
+        contextString += "No se encontraron citas textuales exactas para esta consulta en los libros procesados."
+    }
 
     // 3. Prepare Chat Messages
-    // Include limited history to maintain context but stay within context window
     const recentHistory = history.slice(-4) // Last 2 turns
     
     const messages = [

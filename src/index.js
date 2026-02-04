@@ -24,7 +24,15 @@ const PORT = process.env.PORT || 3467
 
 // Configuración básica
 app.use(cors())
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      frameAncestors: ["'self'", "http://localhost:3465", "http://localhost:3466", "https:", "http:"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
 app.use(morgan('dev'))
 app.use(compression())
 app.use(express.json())

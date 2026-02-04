@@ -185,8 +185,8 @@ function BookDetail() {
         )
     }
 
-    // Use the API endpoint to serve the PDF file
-    const pdfUrl = `http://localhost:3464/api/books/${id}/raw`
+    // Use the API endpoint to serve the PDF file (relative path to use proxy)
+    const pdfUrl = `/api/books/${id}/raw`
 
 
     // Organize data for the 3 sections
