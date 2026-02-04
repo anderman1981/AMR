@@ -1,6 +1,6 @@
 {
   "name": "sistema-maestro-amrois",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AMROIS - Sistema de orquestación distribuida para 50+ dispositivos Windows",
   "type": "module",
   "main": "src/index.js",
