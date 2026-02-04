@@ -18,6 +18,8 @@ build/
 
 # Logs
 logs/
+!logs/AI_HISTORY/
+!logs/AI_HISTORY/**
 *.log
 
 # Runtime data
@@ -100,5 +102,4 @@ tests/fixtures/output/
 tests/temp/
 # Local Admin Dashboard
 admin/
-logs/AI_HISTORY/
 
