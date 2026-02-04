@@ -10,7 +10,7 @@ import {
   RobotOutlined,
   BulbOutlined,
   FileTextOutlined,
-  QuoteRightOutlined
+  SnippetsOutlined
 } from '@ant-design/icons'
 
 const { Title, Text } = Typography
@@ -137,7 +137,7 @@ function Dashboard() {
                 <Statistic
                   title="Citas Extraídas"
                   value={data.contentStats?.quotes || 0}
-                  prefix={<QuoteRightOutlined />}
+                  prefix={<SnippetsOutlined />}
                   valueStyle={{ fontSize: '16px' }}
                 />
               </Col>
