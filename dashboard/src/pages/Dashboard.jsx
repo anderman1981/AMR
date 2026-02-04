@@ -9,6 +9,7 @@ import {
   ExclamationCircleOutlined
 } from '@ant-design/icons'
 import GlobalChat from '../components/GlobalChat'
+import ChatHistory from '../components/ChatHistory'
 // import OnboardingTour from '../components/OnboardingTour' // TODO: Uncomment after installing react-joyride
 
 const { Title } = Typography
@@ -56,55 +57,9 @@ function Dashboard() {
           </div>
         </Col>
 
-        {/* Stats Column */}
+        {/* Stats/History Column */}
         <Col xs={24} lg={8}>
-          <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Card loading={isLoading}>
-                <Statistic
-                  title="Total de Libros"
-                  value={data.totalBooks}
-                  prefix={<BookOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col span={24}>
-              <Card loading={isLoading}>
-                <Statistic
-                  title="Procesados"
-                  value={data.processedBooks}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col span={24}>
-              <Card loading={isLoading}>
-                <Statistic
-                  title="Tareas Completadas"
-                  value={data.completedTasks}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col span={24}>
-              <Card title="💚 Salud del Sistema" loading={isLoading}>
-                <div style={{ textAlign: 'center' }}>
-                  <Progress
-                    type="circle"
-                    percent={data.systemHealth}
-                    format={(percent) => `${percent}%`}
-                    strokeColor={{
-                      '0%': '#108ee9',
-                      '100%': '#87d068',
-                    }}
-                    size={80}
-                  />
-                </div>
-              </Card>
-            </Col>
-          </Row>
+          <ChatHistory />
         </Col>
 
         {/* Additional Stats Row */}

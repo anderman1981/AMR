@@ -65,3 +65,5 @@ export const LanguageProvider = ({ children }) => {
         </LanguageContext.Provider>
     )
 }
+
+export default LanguageProvider
