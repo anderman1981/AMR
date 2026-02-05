@@ -8,7 +8,7 @@ dotenv.config()
 
 const app = express()
 const PORT = 12001 // Port 12001 to avoid conflict
-const API_URL = process.env.API_URL || 'http://localhost:3467'
+const API_URL = process.env.API_URL || 'http://localhost:5467'
 const DEPLOYMENT_TOKEN = 'dev-token' // Should match DB
 
 app.use(express.json())

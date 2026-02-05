@@ -1,0 +1,221 @@
+{
+  "name": "AMROIS 2.0 - Multi-Agent Coach Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "amrois-coach",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "amrois-coach-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/agents/interpreter",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{{$json.body.message}}\"\n}",
+        "options": {}
+      },
+      "name": "1. Interpreter Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.interpretation.objective}}",
+              "operation": "notEqual",
+              "value2": "clarify"
+            }
+          ]
+        }
+      },
+      "name": "Can Proceed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/agents/extractor",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{{$node[\"Webhook Trigger\"].json.body.message}}\",\n  \"bookIds\": {{$json.interpretation.fuentes_requeridas || []}}\n}",
+        "options": {}
+      },
+      "name": "2. Extractor Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/agents/analyzer",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{$json.extracted_content}}\",\n  \"query\": \"{{$node[\"Webhook Trigger\"].json.body.message}}\",\n  \"framework\": \"{{$node[\"1. Interpreter Agent\"].json.interpretation.profundidad === 'profunda' ? 'Feynman' : 'First Principles'}}\"\n}",
+        "options": {}
+      },
+      "name": "3. Analyzer Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/agents/synthesizer",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"items\": [\"{{$node[\"2. Extractor Agent\"].json.extracted_content}}\", \"{{$node[\"3. Analyzer Agent\"].json.analysis}}\"],\n  \"query\": \"{{$node[\"Webhook Trigger\"].json.body.message}}\"\n}",
+        "options": {}
+      },
+      "name": "4. Synthesizer Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/agents/narrator",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{$json.synthesis}}\",\n  \"query\": \"{{$node[\"Webhook Trigger\"].json.body.message}}\",\n  \"persona\": \"Coach\"\n}",
+        "options": {}
+      },
+      "name": "5. Narrator Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1450,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://amrois-api-dev:5467/api/chat/save-response",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chatId\": \"{{$node[\"Webhook Trigger\"].json.body.chatId}}\",\n  \"content\": \"{{$json.narrated_content}}\"\n}",
+        "options": {}
+      },
+      "name": "Save to AMROIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1650,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "1. Interpreter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Interpreter Agent": {
+      "main": [
+        [
+          {
+            "node": "Can Proceed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Proceed?": {
+      "main": [
+        [
+          {
+            "node": "2. Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Extractor Agent": {
+      "main": [
+        [
+          {
+            "node": "3. Analyzer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Analyzer Agent": {
+      "main": [
+        [
+          {
+            "node": "4. Synthesizer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Synthesizer Agent": {
+      "main": [
+        [
+          {
+            "node": "5. Narrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Narrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Save to AMROIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

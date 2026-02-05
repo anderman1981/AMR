@@ -239,7 +239,7 @@ function Books() {
               type="primary"
               size="small"
               icon={<RobotOutlined />}
-              disabled={book?.active_task_type === 'reader' || createTaskMutation.isLoading}
+              disabled={record?.active_task_type === 'reader' || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'reader')}
               data-tour="agent-trigger"
             >
@@ -250,7 +250,7 @@ function Books() {
             <Button
               size="small"
               icon={<SearchOutlined />}
-              disabled={book?.active_task_type === 'extractor' || createTaskMutation.isLoading}
+              disabled={record?.active_task_type === 'extractor' || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'extractor')}
             >
               {record.active_task_type === 'extractor' && record.active_task_progress !== null
@@ -260,7 +260,7 @@ function Books() {
             <Button
               size="small"
               icon={<MessageOutlined />}
-              disabled={book?.active_task_type === 'phrases' || createTaskMutation.isLoading}
+              disabled={record?.active_task_type === 'phrases' || createTaskMutation.isLoading}
               onClick={() => handleCreateTask(record.id, 'phrases')}
             >
               {record.active_task_type === 'phrases' && record.active_task_progress !== null

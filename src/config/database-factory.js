@@ -46,7 +46,11 @@ class DatabaseFactory {
           const client = await this.pool.connect()
           try {
             const res = await client.query(sql, params)
+            console.log('PG RUN RES:', { rowCount: res.rowCount, id: res.rows[0]?.id })
             return { id: res.rows[0]?.id, changes: res.rowCount }
+          } catch (e) {
+            console.error('PG RUN ERROR:', e)
+            throw e
           } finally {
             client.release()
           }

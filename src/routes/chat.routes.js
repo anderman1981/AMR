@@ -1,6 +1,7 @@
 import express from 'express'
-import { query } from '../config/sqlite.js'
+import { query } from '../config/database.js'
 import axios from 'axios'
+import agentOrchestrator from '../services/AgentOrchestrator.js'
 
 const router = express.Router()
 
@@ -32,8 +33,9 @@ TONO:
 // Helper to call LLM (Ollama)
 async function callLLM(messages) {
   try {
-    const response = await axios.post('http://localhost:11434/api/chat', {
-      model: 'llama3:latest', // Or configurable via env
+    const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434'
+    const response = await axios.post(`${ollamaHost}/api/chat`, {
+      model: process.env.OLLAMA_MODEL || 'llama3:latest',
       messages: messages,
       stream: false
     })
@@ -61,7 +63,7 @@ router.post('/global', async (req, res) => {
         'INSERT INTO global_chats (title) VALUES ($1) RETURNING id',
         [chatTitle]
       )
-      currentChatId = chatResult.insertId // For SQLite with better-sqlite3 wrapper
+      currentChatId = chatResult.rows[0]?.id || chatResult.insertId // Handle Postgres (rows) and SQLite (insertId)
     } else {
         // Update updated_at
         await query('UPDATE global_chats SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [currentChatId])
@@ -73,67 +75,22 @@ router.post('/global', async (req, res) => {
         [currentChatId, 'user', message]
     )
 
-    // 1. Search for relevant context (RAG-lite)
-    const keywords = message.split(' ').filter(w => w.length > 4)
-    let dbContext = []
+    // --- START AMROIS 2.0 PIPELINE ---
+    console.log(`🚀 Triggering Multi-Agent Pipeline for: "${message}"`);
     
-    if (keywords.length > 0) {
-        const keyword1 = `%${keywords[0]}%`
-        const keyword2 = keywords.length > 1 ? `%${keywords[1]}%` : keyword1
-        
-        const results = await query(`
-            SELECT b.name as book_title, gc.type, gc.content
-            FROM generated_cards gc
-            JOIN books b ON gc.book_id = b.id
-            WHERE gc.content LIKE $1 OR gc.content LIKE $2
-            LIMIT 15
-        `, [keyword1, keyword2])
-        
-        dbContext = results.rows
-    } else {
-        // Broad search / Random useful context
-        const results = await query(`
-            SELECT b.name as book_title, gc.type, gc.content
-            FROM generated_cards gc
-            JOIN books b ON gc.book_id = b.id
-            WHERE gc.type = 'summary' OR gc.type = 'key_points'
-            ORDER BY RANDOM()
-            LIMIT 5
-        `)
-        dbContext = results.rows
+    // 1. Process via Orchestrator
+    const pipelineResult = await agentOrchestrator.processQuery(message, {
+      history: history.slice(-4),
+      persona: 'Coach',
+      framework: 'Feynman'
+    });
+
+    if (!pipelineResult.success) {
+      throw new Error(pipelineResult.error || 'Pipeline execution failed');
     }
 
-    // 1.5 Get Enhanced Book List (Include Formats)
-    // Fetch name, format, status to inform LLM of exactly what is available
-    const allBooksResult = await query('SELECT name, format, status FROM books ORDER BY name ASC')
-    const availableTitles = allBooksResult.rows.map(b => {
-        const fmt = b.format ? b.format.toUpperCase() : 'N/A'
-        const stat = b.status === 'processed' ? '✅ Digitalizado' : '⏳ Pendiente'
-        return `- ${b.name} [${fmt}] (${stat})`
-    }).join('\n')
-
-    // 2. Construct System Context
-    let contextString = "=== INVENTARIO DE BIBLIOTECA ===\n"
-    contextString += availableTitles
-    contextString += "\n\n=== FRAGMENTOS DE CONTEXTO (RAG) ===\n"
-    
-    if (dbContext.length > 0) {
-        contextString += dbContext.map(row => `[FUENTE: ${row.book_title} | TIPO: ${row.type}]: ${row.content}`).join('\n\n')
-    } else {
-        contextString += "No se encontraron citas textuales exactas para esta consulta en los libros procesados."
-    }
-
-    // 3. Prepare Chat Messages
-    const recentHistory = history.slice(-4) // Last 2 turns
-    
-    const messages = [
-      { role: 'system', content: COACH_SYSTEM_PROMPT + "\n\n" + contextString },
-      ...recentHistory,
-      { role: 'user', content: message }
-    ]
-
-    // 4. Call LLM
-    const coachResponse = await callLLM(messages)
+    const coachResponse = pipelineResult.final_answer;
+    // --- END AMROIS 2.0 PIPELINE ---
 
     // Save Assistant Message
     await query(
@@ -145,7 +102,7 @@ router.post('/global', async (req, res) => {
       role: 'assistant',
       content: coachResponse,
       chatId: currentChatId,
-      context_used: dbContext.length // debugging info
+      metadata: pipelineResult.metadata // Send pipeline metadata for debug/UI
     })
 
   } catch (error) {
@@ -153,6 +110,32 @@ router.post('/global', async (req, res) => {
     res.status(500).json({ error: 'Error processing your request' })
   }
 })
+
+/**
+ * @route   POST /api/chat/save-response
+ * @desc    Save an externally generated response to a chat session (used by n8n)
+ */
+router.post('/save-response', async (req, res) => {
+  try {
+    const { chatId, content, role = 'assistant', metadata = {} } = req.body;
+    
+    if (!chatId || !content) {
+      return res.status(400).json({ error: 'chatId and content are required' });
+    }
+    
+    await query(
+      'INSERT INTO global_chat_messages (chat_id, role, content) VALUES ($1, $2, $3)',
+      [chatId, role, content]
+    );
+    
+    await query('UPDATE global_chats SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [chatId]);
+    
+    res.json({ success: true, message: 'Response saved successfully' });
+  } catch (error) {
+    console.error('Error saving external response:', error);
+    res.status(500).json({ error: 'Failed to save response' });
+  }
+});
 
 // GET /api/chat/sessions
 router.get('/sessions', async (req, res) => {

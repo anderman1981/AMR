@@ -80,40 +80,23 @@ function Sidebar() {
         onClick={handleMenuClick}
       />
 
-      {/* System Status Footer - Environment Aware */}
       <div style={{
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        padding: '16px',
+        padding: '12px 16px',
         background: '#001529',
         borderTop: '1px solid #1890ff',
-        color: 'rgba(255, 255, 255, 0.65)',
-        fontSize: '12px'
+        color: 'rgba(255, 255, 255, 0.45)',
+        fontSize: '11px',
+        textAlign: 'center'
       }}>
-        {import.meta.env.DEV ? (
-          // Development View: Full Details
-          <>
-            <div style={{ marginBottom: '8px', color: 'white', fontWeight: 'bold' }}>System Status (DEV)</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>Version:</span>
-              <span>v{versionInfo.major}.{versionInfo.minor}.{versionInfo.patch}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>Branch:</span>
-              <span style={{ color: '#1890ff' }}>{versionInfo.branch}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Status:</span>
-              <span style={{ color: '#52c41a' }}>● Online</span>
-            </div>
-          </>
-        ) : (
-          // Production View: Minimal
-          <div style={{ textAlign: 'center', color: '#8c8c8c' }}>
-            v{versionInfo.major}.{versionInfo.minor}.{versionInfo.patch}
-          </div>
-        )}
+        <div style={{ marginBottom: '2px', textTransform: 'lowercase' }}>
+          {versionInfo.branch}
+        </div>
+        <div style={{ fontWeight: '500' }}>
+          v{versionInfo.major}.{versionInfo.minor}.{versionInfo.patch}
+        </div>
       </div>
     </Sider>
   )

@@ -103,7 +103,7 @@ router.patch('/:id/progress', async (req, res) => {
     const { progress } = req.body
 
     const result = await query(
-      'UPDATE tasks SET progress = $1, updated_at = datetime(\'now\') WHERE id = $2 RETURNING id',
+      'UPDATE tasks SET progress = $1, updated_at = NOW() WHERE id = $2 RETURNING id',
       [progress, id]
     )
 

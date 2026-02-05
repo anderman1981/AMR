@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+data
+books
+.git
+.gitignore
+.env
+Dockerfile
+docker-compose*
+*.md
+logs
+AI_HISTORY
+brain
+.gemini
+.agent

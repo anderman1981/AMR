@@ -13,13 +13,12 @@ export const query = async (text, params = []) => {
     // Convertir parámetros de estilo PostgreSQL ($1, $2) a SQLite (?, ?)
     let sqliteQuery = text
     
-    if (params.length > 0) {
+    // Convertir parámetros si es SQLite
+    if (process.env.DB_TYPE === 'sqlite' && params.length > 0) {
       sqliteQuery = text.replace(/\$\d+/g, '?')
+      // Replace Postgres NOW() with SQLite datetime('now')
+      sqliteQuery = sqliteQuery.replace(/NOW\(\)/gi, "datetime('now')")
     }
-    
-    // Replace Postgres NOW() with SQLite datetime('now')
-    // Use regex to replace whole word NOW() case insensitive
-    sqliteQuery = sqliteQuery.replace(/NOW\(\)/gi, "datetime('now')")
     
     // Check for RETURNING clause (Postgres style supported by some SQLite builds or just generic logic)
     // Actually better-sqlite3 supports RETURNING in .get() or .all()
@@ -37,12 +36,12 @@ export const query = async (text, params = []) => {
       // Formatear resultado para que sea compatible con el código existente
       return { rows: result || [], rowCount: result ? result.length : 0 }
     } else if (text.trim().toLowerCase().startsWith('insert')) {
-      result = await dbInstance.run(sqliteQuery, params)
       // Para INSERT sin RETURNING
+      result = await dbInstance.run(sqliteQuery, params)
       return { 
           rows: [], 
           rowCount: result.changes,
-          insertId: result.lastInsertRowid // Expose ID for callers who don't use RETURNING
+          insertId: result.lastInsertRowid || result.id // Expose ID for callers who don't use RETURNING
       }
     } else {
       result = await dbInstance.run(sqliteQuery, params)

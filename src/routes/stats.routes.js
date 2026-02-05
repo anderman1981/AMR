@@ -1,4 +1,5 @@
-import { query } from '../config/sqlite.js'
+import express from 'express'
+import { query } from '../config/database.js'
 
 const router = express.Router()
 
@@ -54,10 +55,14 @@ router.get('/', async (req, res) => {
     const agentUsage = agentUsageResult.rows
     const taskTime = taskTimeResult.rows[0]
 
-    // Calculate Brain Level
-    const rawScore = (parseInt(knowledge.total_cards) * 1) + 
-                     (parseInt(books.processed) * 10) + 
-                     (parseInt(interactions.messages) * 5)
+    // Calculate Brain Level with safety defaults
+    const knowledgeTotal = parseInt(knowledge?.total_cards || 0)
+    const booksProcessed = parseInt(books?.processed || 0)
+    const interactionMessages = parseInt(interactions?.messages || 0)
+
+    const rawScore = (knowledgeTotal * 1) + 
+                     (booksProcessed * 10) + 
+                     (interactionMessages * 5)
     
     // Calculate Agent Stats
     const totalTasks = agentUsage.reduce((acc, curr) => acc + curr.count, 0)
@@ -99,7 +104,21 @@ router.get('/', async (req, res) => {
     res.json(stats)
   } catch (error) {
     console.error('Error fetching system stats:', error)
-    res.status(500).json({ error: 'Failed to fetch system stats' })
+    // Return a partial success with empty stats instead of a 500
+    res.status(200).json({ 
+      error: 'Incomplete stats data',
+      message: error.message,
+      totalBooks: 0,
+      processedBooks: 0,
+      pendingBooks: 0,
+      processingBooks: 0,
+      activeDevices: 0,
+      completedTasks: 0,
+      contentStats: { quotes: 0, summaries: 0, insights: 0, totalKnowledge: 0 },
+      agentStats: { breakdown: [], totalExecutionTime: 0 },
+      brainMetrics: { score: 0, level: 1, totalCards: 0, totalInteractions: 0 },
+      systemHealth: 50
+    })
   }
 })
 

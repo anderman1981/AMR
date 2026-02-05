@@ -1,5 +1,5 @@
 import express from 'express'
-import { query } from '../config/sqlite.js'
+import { query } from '../config/database.js'
 import multer from 'multer'
 import path from 'path'
 import { promises as fs } from 'fs'
@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import { extractTextFromFile } from '../utils/extractor.js'
 import { extractFormsFromText } from '../utils/formExtractor.js'
+import vectorStore from '../services/VectorStoreService.js'
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url)
@@ -52,22 +53,21 @@ router.get('/', async (req, res) => {
     // Query books joined with their latest active task info
     // Use GROUP BY to prevent duplicates when a book has multiple active tasks
     const result = await query(`
-      SELECT b.*, 
+      SELECT DISTINCT ON (b.id) b.*, 
              t.id as active_task_id, 
              t.status as active_task_status, 
              t.progress as active_task_progress,
-             JSON_EXTRACT(t.payload, '$.action') as active_task_type,
+             t.payload->>'action' as active_task_type,
              (CASE WHEN b.content IS NOT NULL AND b.content != '' THEN 1 ELSE 0 END) as has_content,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'summary') as has_summary,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'key_points') as has_key_points,
              (SELECT COUNT(*) FROM generated_cards WHERE book_id = b.id AND type = 'quotes') as has_quotes
       FROM books b
       LEFT JOIN tasks t ON (
-        JSON_EXTRACT(t.payload, '$.book_id') = b.id 
+        (t.payload->>'book_id')::INTEGER = b.id 
         AND t.status IN ('pending', 'assigned')
       )
-      GROUP BY b.id
-      ORDER BY b.id DESC
+      ORDER BY b.id DESC, t.created_at DESC
     `)
     
     // Process results to ensure status consistency
@@ -133,6 +133,16 @@ router.get('/:id/content', async (req, res) => {
       }
 
       await query('UPDATE books SET content = $1 WHERE id = $2', [text, id])
+      
+      // Auto-vectorize content for RAG (Async)
+      const chunks = vectorStore.chunkText(text)
+      const docs = chunks.map((chunk, index) => ({
+        id: `book_${id}_chunk_${index}`,
+        text: chunk,
+        metadata: { book_id: parseInt(id), book_name: book.name, chunk_index: index }
+      }))
+      vectorStore.addDocuments(docs).catch(err => console.error(`[VectorStore] Error auto-vectorizing book ${id}:`, err))
+      
       res.json({ content: text })
     } catch (extractError) {
       console.error(`❌ Extraction failed for book ${id}:`, extractError)
@@ -158,10 +168,10 @@ router.get('/:id', async (req, res) => {
              t.id as active_task_id,
              t.status as active_task_status,
              t.progress as active_task_progress,
-             JSON_EXTRACT(t.payload, '$.action') as active_task_type
+             t.payload->>'action' as active_task_type
       FROM books b 
       LEFT JOIN tasks t ON (
-        JSON_EXTRACT(t.payload, '$.book_id') = b.id 
+        (t.payload->>'book_id')::INTEGER = b.id 
         AND t.status IN ('pending', 'assigned')
       )
       WHERE b.id = $1
@@ -298,7 +308,7 @@ router.post('/scan', async (req, res) => {
   try {
     console.log('🔍 Starting directory scan...')
     
-    const booksDir = path.join(process.cwd(), 'data', 'books')
+    const booksDir = process.env.BOOKS_PATH || path.join(process.cwd(), 'books')
     console.log('📁 Scanning directory:', booksDir)
     
     // Check if directory exists
@@ -350,6 +360,19 @@ router.post('/scan', async (req, res) => {
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name`,
           [title, file.path, file.size, file.format, 'General', 'pending', 0, content]
         )
+        
+        const bookId = result.rows[0]?.id || result.id
+        
+        // Auto-vectorize content if extracted (Async)
+        if (content && bookId) {
+          const chunks = vectorStore.chunkText(content)
+          const docs = chunks.map((chunk, index) => ({
+            id: `book_${bookId}_chunk_${index}`,
+            text: chunk,
+            metadata: { book_id: parseInt(bookId), book_name: title, chunk_index: index }
+          }))
+          vectorStore.addDocuments(docs).catch(err => console.error(`[VectorStore] Error auto-vectorizing book ${bookId}:`, err))
+        }
         
         if (result.rows && result.rows.length > 0) {
           console.log(`✅ Added: ${title} (ID: ${result.rows[0].id})`)
@@ -500,13 +523,15 @@ router.post('/:id/task', async (req, res) => {
     
     // Generic agent type for books
     const agentType = 'book_agent'
-    const taskId = crypto.randomUUID()
 
     const result = await query(
-      `INSERT INTO tasks (id, agent_type, payload, status, priority) 
-       VALUES ($1, $2, $3, 'pending', 1)`,
-      [taskId, agentType, JSON.stringify(payload)]
+      `INSERT INTO tasks (agent_type, payload, status, priority) 
+       VALUES ($1, $2, 'pending', 1) RETURNING id`,
+      [agentType, JSON.stringify(payload)]
     )
+    
+    // Support both ID formats (Postgres rows vs SQLite insertId pattern if needed)
+    const newTaskId = result.rows?.[0]?.id || result.insertId || result.id
 
     // Set book status to processing to disable UI buttons
     await query("UPDATE books SET status = 'processing' WHERE id = $1", [id])
@@ -514,7 +539,7 @@ router.post('/:id/task', async (req, res) => {
     res.status(201).json({
       success: true,
       data: {
-        task_id: taskId,
+        task_id: newTaskId,
         status: 'pending'
       },
       message: `Task ${type} created for book ${book.name}`
@@ -571,8 +596,8 @@ router.post('/:id/chat', async (req, res) => {
         'INSERT INTO book_chats (book_id, title) VALUES ($1, $2) RETURNING id',
         [id, message.substring(0, 50) + (message.length > 50 ? '...' : '')]
       )
-      // SQLite returns insertId, not rows
-      chatId = chatResult.insertId
+      // SQLite returns insertId, not rows, but Postgres wrapper with RETURNING returns rows
+      chatId = chatResult.rows[0]?.id || chatResult.insertId
     }
 
     // Save user message
@@ -682,6 +707,43 @@ router.get('/chats/:chatId/messages', async (req, res) => {
     res.json(result.rows)
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch messages' })
+  }
+})
+
+// Manual vectorization for RAG
+router.post('/:id/vectorize', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await query('SELECT id, name, content FROM books WHERE id = $1', [id])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Book not found' })
+    }
+    
+    const book = result.rows[0]
+    
+    if (!book.content) {
+      return res.status(400).json({ error: 'Book has no content to vectorize' })
+    }
+
+    console.log(`🚀 Starting manual vectorization for book ${id}...`)
+    const chunks = vectorStore.chunkText(book.content)
+    const docs = chunks.map((chunk, index) => ({
+      id: `book_${id}_chunk_${index}`,
+      text: chunk,
+      metadata: { book_id: parseInt(id), book_name: book.name, chunk_index: index }
+    }))
+    
+    await vectorStore.addDocuments(docs)
+    
+    res.json({ 
+      success: true, 
+      message: `Book vectorized successfully`, 
+      chunks: chunks.length 
+    })
+  } catch (error) {
+    console.error('Error in manual vectorization:', error)
+    res.status(500).json({ error: 'Vectorization failed', details: error.message })
   }
 })
 

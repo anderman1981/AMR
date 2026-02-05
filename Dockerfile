@@ -6,6 +6,8 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
+    sqlite \
+    sqlite-dev \
     && rm -rf /var/cache/apk/*
 
 # Directorio de trabajo
@@ -14,24 +16,24 @@ WORKDIR /app
 # Copiar archivos de configuración primero
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production
+# Instalar dependencias y reconstruir módulos nativos
+RUN npm ci && npm rebuild better-sqlite3
 
 # Copiar código fuente
 COPY . .
 
-# Crear directorio para libros con permisos
+# Crear directorios con permisos específicos
 RUN mkdir -p /app/books /app/logs /app/uploads \
-    && chown -R node:node /app
+    && chown node:node /app/logs /app/uploads
 
 # Cambiar a usuario no-root
 USER node
 
-# Exponer puerto
-EXPOSE 4123
+# Exponer puerto (estandarizado a 5467)
+EXPOSE 5467
 
 # Variables de entorno
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV BOOKS_PATH=/app/books
 
 # Comando de inicio

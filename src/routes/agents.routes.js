@@ -1,7 +1,98 @@
 import express from 'express'
 import { query } from '../config/database.js'
 
+// Import specialized agents for AMROIS 2.0
+import interpreter from '../agents/InterpreterAgent.js'
+import extractor from '../agents/ExtractorAgent.js'
+import analyzer from '../agents/AnalyzerAgent.js'
+import synthesizer from '../agents/SynthesizerAgent.js'
+import narrator from '../agents/NarratorAgent.js'
+
 const router = express.Router()
+
+// --- AMROIS 2.0 SPECIALIZED AGENTS ENDPOINTS ---
+
+/**
+ * @route   POST /api/agents/interpreter
+ * @desc    Run intent classification
+ */
+router.post('/interpreter', async (req, res) => {
+  try {
+    const { query: userInput } = req.body;
+    if (!userInput) return res.status(400).json({ error: 'Query is required' });
+    
+    const result = await interpreter.execute({ query: userInput });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route   POST /api/agents/extractor
+ * @desc    Run RAG knowledge extraction
+ */
+router.post('/extractor', async (req, res) => {
+  try {
+    const { query: userInput, bookIds = [] } = req.body;
+    if (!userInput) return res.status(400).json({ error: 'Query is required' });
+    
+    const result = await extractor.execute({ query: userInput, bookIds });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route   POST /api/agents/analyzer
+ * @desc    Run framework-based analysis
+ */
+router.post('/analyzer', async (req, res) => {
+  try {
+    const { content, query: userInput, framework = 'Feynman' } = req.body;
+    if (!content) return res.status(400).json({ error: 'Content is required' });
+    
+    const result = await analyzer.execute({ content, query: userInput, framework });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route   POST /api/agents/synthesizer
+ * @desc    Run insight synthesis
+ */
+router.post('/synthesizer', async (req, res) => {
+  try {
+    const { items, query: userInput } = req.body;
+    if (!items || !Array.isArray(items)) return res.status(400).json({ error: 'Items array is required' });
+    
+    const result = await synthesizer.execute({ items, query: userInput });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route   POST /api/agents/narrator
+ * @desc    Run tone adjustment / narration
+ */
+router.post('/narrator', async (req, res) => {
+  try {
+    const { content, query: userInput, persona = 'Coach' } = req.body;
+    if (!content) return res.status(400).json({ error: 'Content is required' });
+    
+    const result = await narrator.execute({ content, query: userInput, persona });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- LEGACY DEVICE/TASK AGENTS ENDPOINTS ---
 
 /**
  * @route   GET /api/agents
@@ -70,8 +161,8 @@ router.get('/:name/status', async (req, res) => {
         COUNT(CASE WHEN success = true THEN 1 END) as successful_tasks,
         AVG(execution_time) as avg_execution_time,
         MAX(created_at) as last_activity,
-        COUNT(CASE WHEN created_at > datetime('now', '-1 day') THEN 1 END) as tasks_last_24h,
-        COUNT(CASE WHEN created_at > datetime('now', '-7 days') THEN 1 END) as tasks_last_7d
+        COUNT(CASE WHEN created_at > NOW() - INTERVAL '1 day' THEN 1 END) as tasks_last_24h,
+        COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as tasks_last_7d
       FROM agent_performance
       WHERE agent_name = $1
     `, [name])
@@ -248,9 +339,9 @@ router.get('/stats', async (req, res) => {
     // 1. Contar agentes por tipo de tarea activa
     const statsResult = await query(`
       SELECT 
-        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'reader' AND status = 'assigned' THEN 1 END) as reading,
-        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'extractor' AND status = 'assigned' THEN 1 END) as extracting,
-        COUNT(CASE WHEN JSON_EXTRACT(payload, '$.action') = 'phrases' AND status = 'assigned' THEN 1 END) as creating_cards,
+        COUNT(CASE WHEN payload->>'action' = 'reader' AND status = 'assigned' THEN 1 END) as reading,
+        COUNT(CASE WHEN payload->>'action' = 'extractor' AND status = 'assigned' THEN 1 END) as extracting,
+        COUNT(CASE WHEN payload->>'action' = 'phrases' AND status = 'assigned' THEN 1 END) as creating_cards,
         COUNT(CASE WHEN status = 'assigned' THEN 1 END) as total_active,
         COUNT(*) as total_tasks
       FROM tasks
@@ -335,7 +426,7 @@ router.get('/performance', async (req, res) => {
           NULLIF(COUNT(*), 0), 2
         ) as success_rate
       FROM agent_performance
-      WHERE created_at >= datetime('now', ${sqliteInterval})
+      WHERE created_at >= NOW() + CAST(${sqliteInterval} AS INTERVAL)
       GROUP BY agent_name
       ORDER BY success_rate DESC, total_tasks DESC
     `)
