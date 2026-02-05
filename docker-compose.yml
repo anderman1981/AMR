@@ -46,6 +46,8 @@ services:
     environment:
       - VITE_API_URL=http://localhost:5467
       - VITE_APP_NAME=AMROIS Dashboard DEV
+    volumes:
+      - ./dashboard/dist:/usr/share/nginx/html:ro
     depends_on:
       - amrois-api-dev
     restart: unless-stopped

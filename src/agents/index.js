@@ -271,10 +271,20 @@ const startHeartbeat = () => {
                 'x-signature': signature
             }
 
+            // Get Real Metrics
+            const load = await systeminformation.currentLoad()
+            const mem = await systeminformation.mem()
+            
+            const cpuUsage = Math.round(load.currentLoad)
+            const memUsage = Math.round((mem.active / mem.total) * 100)
+
             // HEARTBEAT to get tasks
             const res = await axios.post(`${API_URL}/api/devices/${DEVICE_ID}/heartbeat`, {
                 status: 'online',
-                system_info: { cpu: 10, memory: 20 }
+                system_info: { 
+                    cpu_usage: cpuUsage, 
+                    memory_usage: memUsage 
+                }
             }, { headers })
             
             const tasks = res.data.data.pending_tasks
